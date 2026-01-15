@@ -12,6 +12,8 @@ import {
 } from 'recharts'
 import { KPICard } from '@/components/cards/KPICard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { SkeletonCard, SkeletonChart } from '@/components/ui/skeleton'
+import { useLoading } from '@/hooks/useLoading'
 import {
   getDashboardSummary,
   getUnitSizeMetrics,
@@ -20,9 +22,32 @@ import {
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { Percent, Euro, Box, Clock } from 'lucide-react'
 
+function ExecutiveOverviewSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SkeletonChart height={300} />
+        <SkeletonChart height={300} />
+      </div>
+      <SkeletonChart height={250} />
+    </div>
+  )
+}
+
 export function ExecutiveOverview() {
+  const isLoading = useLoading(1000)
   const summary = getDashboardSummary()
   const unitSizeData = getUnitSizeMetrics()
+
+  if (isLoading) {
+    return <ExecutiveOverviewSkeleton />
+  }
 
   return (
     <div className="space-y-6">

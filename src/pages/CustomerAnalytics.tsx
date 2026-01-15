@@ -22,6 +22,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { SkeletonCard, SkeletonChart, SkeletonPieChart, SkeletonTable } from '@/components/ui/skeleton'
+import { useLoading } from '@/hooks/useLoading'
 import {
   getDashboardSummary,
   getCustomerSegments,
@@ -34,9 +36,32 @@ import { Users, UserMinus, Euro, Building2 } from 'lucide-react'
 
 const COLORS = ['#3b82f6', '#22c55e']
 
+function CustomerAnalyticsSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SkeletonChart height={300} />
+        <SkeletonPieChart />
+      </div>
+      <SkeletonTable rows={10} />
+    </div>
+  )
+}
+
 export function CustomerAnalytics() {
+  const isLoading = useLoading(1000)
   const summary = getDashboardSummary()
   const segments = getCustomerSegments()
+
+  if (isLoading) {
+    return <CustomerAnalyticsSkeleton />
+  }
 
   // Get top customers by units rented
   const activeCustomers = customers.filter((c) => !c.endDate)

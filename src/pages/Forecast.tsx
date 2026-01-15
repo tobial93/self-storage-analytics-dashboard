@@ -14,14 +14,55 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCard } from '@/components/cards/AlertCard'
 import { Badge } from '@/components/ui/badge'
+import { SkeletonCard, SkeletonChart, Skeleton } from '@/components/ui/skeleton'
+import { useLoading } from '@/hooks/useLoading'
 import { getForecastData, getPricingAlerts, monthlyMetrics, getUnitSizeMetrics } from '@/data/mockData'
 import { formatCurrency } from '@/lib/utils'
 import { TrendingUp, Calendar, AlertCircle, Lightbulb } from 'lucide-react'
 
+function ForecastSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+      <SkeletonChart height={350} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-border bg-card">
+          <div className="p-6 pb-2">
+            <Skeleton className="h-6 w-48" />
+          </div>
+          <div className="p-6 pt-2 space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </div>
+        <SkeletonChart height={280} />
+      </div>
+      <div className="rounded-xl border border-border bg-card p-6">
+        <Skeleton className="h-6 w-32 mb-4" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function Forecast() {
+  const isLoading = useLoading(1000)
   const forecastData = getForecastData()
   const pricingAlerts = getPricingAlerts()
   const unitSizeData = getUnitSizeMetrics()
+
+  if (isLoading) {
+    return <ForecastSkeleton />
+  }
 
   // Calculate seasonal trends (using monthly metrics)
   const seasonalData = monthlyMetrics.map((m, index) => ({
@@ -59,7 +100,7 @@ export function Forecast() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
                 <TrendingUp className="h-6 w-6 text-blue-600" />
               </div>
               <div>
@@ -74,7 +115,7 @@ export function Forecast() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
                 <AlertCircle className="h-6 w-6 text-orange-600" />
               </div>
               <div>
@@ -89,7 +130,7 @@ export function Forecast() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
                 <Calendar className="h-6 w-6 text-green-600" />
               </div>
               <div>

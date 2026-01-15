@@ -18,14 +18,35 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { SkeletonCard, SkeletonChart, SkeletonTable } from '@/components/ui/skeleton'
+import { useLoading } from '@/hooks/useLoading'
 import { getUnitSizeMetrics, monthlyMetrics } from '@/data/mockData'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react'
 
 const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6']
 
+function UnitPerformanceSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+      <SkeletonChart height={300} />
+      <SkeletonTable rows={5} />
+    </div>
+  )
+}
+
 export function UnitPerformance() {
+  const isLoading = useLoading(1000)
   const unitSizeData = getUnitSizeMetrics()
+
+  if (isLoading) {
+    return <UnitPerformanceSkeleton />
+  }
 
   // Calculate most/least profitable
   const sortedByRevenue = [...unitSizeData].sort((a, b) => b.revenuePerSqm - a.revenuePerSqm)
@@ -43,7 +64,7 @@ export function UnitPerformance() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
                 <TrendingUp className="h-6 w-6 text-green-600" />
               </div>
               <div>
@@ -60,7 +81,7 @@ export function UnitPerformance() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
                 <TrendingDown className="h-6 w-6 text-red-600" />
               </div>
               <div>
@@ -77,7 +98,7 @@ export function UnitPerformance() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
                 <Minus className="h-6 w-6 text-blue-600" />
               </div>
               <div>
