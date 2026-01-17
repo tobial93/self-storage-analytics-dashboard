@@ -53,6 +53,14 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: true,
     },
+    facilityId: {
+      type: DataTypes.INTEGER,
+      allowNull: true, // Allow null for admin users who can access all facilities
+      references: {
+        model: 'facilities',
+        key: 'id',
+      },
+    },
   }, {
     tableName: 'users',
     timestamps: true,
@@ -79,6 +87,17 @@ module.exports = (sequelize) => {
       },
     },
   });
+
+  User.prototype.checkPassword = async function(password) {
+    return await bcrypt.compare(password, this.password);
+  };
+
+  User.associate = (models) => {
+    User.belongsTo(models.Facility, {
+      foreignKey: 'facilityId',
+      as: 'facility',
+    });
+  };
 
   User.prototype.checkPassword = async function(password) {
     return await bcrypt.compare(password, this.password);

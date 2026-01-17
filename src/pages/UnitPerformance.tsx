@@ -19,8 +19,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { SkeletonCard, SkeletonChart, SkeletonTable } from '@/components/ui/skeleton'
-import { useLoading } from '@/hooks/useLoading'
-import { getUnitSizeMetrics, monthlyMetrics } from '@/data/mockData'
+import { useUnitStats, useDashboard } from '@/hooks/useApi'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react'
 
@@ -40,22 +39,61 @@ function UnitPerformanceSkeleton() {
   )
 }
 
+function ErrorDisplay({ message }: { message: string }) {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="text-center">
+        <p className="text-red-500 mb-2">Error loading data</p>
+        <p className="text-muted-foreground text-sm">{message}</p>
+      </div>
+    </div>
+  )
+}
+
 export function UnitPerformance() {
-  const isLoading = useLoading(1000)
-  const unitSizeData = getUnitSizeMetrics()
+  const { data: unitStats, isLoading: statsLoading, error: statsError } = useUnitStats()
+  const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboard()
+
+  const isLoading = statsLoading || dashboardLoading
+  const error = statsError || dashboardError
 
   if (isLoading) {
     return <UnitPerformanceSkeleton />
   }
+
+  if (error || !unitStats || !dashboardData) {
+    return <ErrorDisplay message={error || 'Failed to load data'} />
+  }
+
+  // Transform unit stats for display
+  const unitSizeData = unitStats.bySize.map((item) => {
+    const avgPrice = parseFloat(unitStats.avgPriceBySize[item.size] || '0')
+    const sizeInSqm = parseInt(item.size.replace('m²', ''), 10)
+    const revenuePerSqm = avgPrice / sizeInSqm
+    const totalRevenue = item.occupied * avgPrice
+
+    return {
+      size: item.size,
+      totalUnits: item.total,
+      occupiedUnits: item.occupied,
+      availableUnits: item.available,
+      occupancyRate: parseFloat(item.occupancyRate),
+      avgPrice,
+      revenuePerSqm,
+      totalRevenue,
+    }
+  })
 
   // Calculate most/least profitable
   const sortedByRevenue = [...unitSizeData].sort((a, b) => b.revenuePerSqm - a.revenuePerSqm)
   const mostProfitable = sortedByRevenue[0]
   const leastProfitable = sortedByRevenue[sortedByRevenue.length - 1]
 
-  // Calculate turnover rate (simplified: new customers / total customers)
-  const lastMonth = monthlyMetrics[monthlyMetrics.length - 1]
-  const turnoverRate = ((lastMonth.newCustomers + lastMonth.churnedCustomers) / lastMonth.occupiedUnits) * 100
+  // Calculate turnover rate from historical metrics
+  const lastMonth = dashboardData.historicalMetrics[dashboardData.historicalMetrics.length - 1]
+  const turnoverRate = lastMonth && lastMonth.occupiedUnits > 0
+    ? ((lastMonth.newCustomers + lastMonth.churnedCustomers) / lastMonth.occupiedUnits) * 100
+    : 0
 
   return (
     <div className="space-y-6">
@@ -69,9 +107,9 @@ export function UnitPerformance() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Profitabelste Größe</p>
-                <p className="text-2xl font-bold">{mostProfitable.size}</p>
+                <p className="text-2xl font-bold">{mostProfitable?.size || '-'}</p>
                 <p className="text-sm text-green-600">
-                  {formatCurrency(mostProfitable.revenuePerSqm)}/m²
+                  {mostProfitable ? formatCurrency(mostProfitable.revenuePerSqm) : '-'}/m²
                 </p>
               </div>
             </div>
@@ -86,9 +124,9 @@ export function UnitPerformance() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Am wenigsten profitabel</p>
-                <p className="text-2xl font-bold">{leastProfitable.size}</p>
+                <p className="text-2xl font-bold">{leastProfitable?.size || '-'}</p>
                 <p className="text-sm text-red-600">
-                  {formatCurrency(leastProfitable.revenuePerSqm)}/m²
+                  {leastProfitable ? formatCurrency(leastProfitable.revenuePerSqm) : '-'}/m²
                 </p>
               </div>
             </div>

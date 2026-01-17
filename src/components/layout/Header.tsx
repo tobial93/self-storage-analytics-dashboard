@@ -1,6 +1,7 @@
-import { Menu, Moon, Sun } from 'lucide-react'
+import { Menu, Moon, Sun, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { ExportButton } from '@/components/reports/ExportButton'
 
 interface HeaderProps {
@@ -10,6 +11,7 @@ interface HeaderProps {
 
 export function Header({ onMenuClick, title }: HeaderProps) {
   const { toggleTheme } = useTheme()
+  const { user } = useAuth()
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-4 lg:px-6">
@@ -22,7 +24,15 @@ export function Header({ onMenuClick, title }: HeaderProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <h1 className="text-xl font-semibold">{title}</h1>
+        <div className="flex flex-col">
+          <h1 className="text-xl font-semibold">{title}</h1>
+          {user && user.facility && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Building2 className="h-3 w-3" />
+              <span>{user.facility.name}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

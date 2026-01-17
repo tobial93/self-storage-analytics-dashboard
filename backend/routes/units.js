@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const { authenticateToken, authorizeRoles, checkFacilityAccess } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { asyncHandler } = require('../middleware/errorHandler');
 const unitController = require('../controllers/unitController');
@@ -68,13 +68,13 @@ const rentUnitSchema = {
 router.use(authenticateToken);
 
 // Get unit statistics (must be before /:id route)
-router.get('/stats', asyncHandler(unitController.getStats));
+router.get('/stats', checkFacilityAccess, asyncHandler(unitController.getStats));
 
 // Get all units with pagination and filtering
-router.get('/', asyncHandler(unitController.getAll));
+router.get('/', checkFacilityAccess, asyncHandler(unitController.getAll));
 
 // Get unit by ID
-router.get('/:id', asyncHandler(unitController.getById));
+router.get('/:id', checkFacilityAccess, asyncHandler(unitController.getById));
 
 // Create new unit (admin and manager only)
 router.post(

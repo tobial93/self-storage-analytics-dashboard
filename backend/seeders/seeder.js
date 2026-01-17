@@ -1,4 +1,4 @@
-const { User, Unit, Customer, Metric, sequelize } = require('../models');
+const { User, Unit, Customer, Metric, Facility, sequelize } = require('../models');
 const { units, customers } = require('./mockData');
 
 /**
@@ -13,9 +13,11 @@ const seedDatabase = async (options = {}) => {
     // Check if data already exists
     const existingUsers = await User.count();
     const existingUnits = await Unit.count();
+    const existingFacilities = await Facility.count();
 
-    if (!force && (existingUsers > 0 || existingUnits > 0)) {
+    if (!force && (existingUsers > 0 || existingUnits > 0 || existingFacilities > 0)) {
       console.log('Database already contains data. Skipping seed.');
+      console.log(`  Facilities: ${existingFacilities}`);
       console.log(`  Users: ${existingUsers}`);
       console.log(`  Units: ${existingUnits}`);
       return { seeded: false, message: 'Database already seeded' };
@@ -28,7 +30,35 @@ const seedDatabase = async (options = {}) => {
       await Unit.destroy({ where: {} });
       await Customer.destroy({ where: {} });
       await User.destroy({ where: {} });
+      await Facility.destroy({ where: {} });
     }
+
+    // Create facilities first
+    console.log('Creating facilities...');
+    const facility1 = await Facility.create({
+      name: 'Main Storage Facility',
+      address: '123 Storage Street',
+      city: 'Berlin',
+      state: 'Berlin',
+      zipCode: '10115',
+      country: 'Germany',
+      phone: '+49 30 12345678',
+      email: 'main@selfstorage.com',
+      totalUnits: 80,
+    });
+
+    const facility2 = await Facility.create({
+      name: 'Downtown Storage Center',
+      address: '456 Warehouse Ave',
+      city: 'Berlin',
+      state: 'Berlin',
+      zipCode: '10117',
+      country: 'Germany',
+      phone: '+49 30 87654321',
+      email: 'downtown@selfstorage.com',
+      totalUnits: 45,
+    });
+    console.log('  Created 2 facilities');
 
     // Create admin user
     console.log('Creating admin user...');
@@ -38,6 +68,7 @@ const seedDatabase = async (options = {}) => {
       password: 'admin123',
       role: 'admin',
       isActive: true,
+      facilityId: null, // Admins can access all facilities
     });
 
     // Create manager user
@@ -48,6 +79,7 @@ const seedDatabase = async (options = {}) => {
       password: 'manager123',
       role: 'manager',
       isActive: true,
+      facilityId: facility1.id,
     });
 
     // Create staff user
@@ -58,6 +90,7 @@ const seedDatabase = async (options = {}) => {
       password: 'staff123',
       role: 'staff',
       isActive: true,
+      facilityId: facility1.id,
     });
 
     // Create customers first (due to foreign key constraints)
@@ -76,9 +109,9 @@ const seedDatabase = async (options = {}) => {
     await Promise.all(customerPromises);
     console.log(`  Created ${customers.length} customers`);
 
-    // Create units
+    // Create units (assign to facilities)
     console.log('Creating units...');
-    const unitPromises = units.map((unit) =>
+    const unitPromises = units.map((unit, index) =>
       Unit.create({
         id: unit.id,
         size: unit.size,
@@ -87,6 +120,7 @@ const seedDatabase = async (options = {}) => {
         customerId: unit.customerId,
         rentedSince: unit.rentedSince,
         floor: Math.floor(Math.random() * 3) + 1,
+        facilityId: index < 80 ? facility1.id : facility2.id, // Split units between facilities
       })
     );
     await Promise.all(unitPromises);

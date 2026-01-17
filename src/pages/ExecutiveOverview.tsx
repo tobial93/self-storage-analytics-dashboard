@@ -13,12 +13,7 @@ import {
 import { KPICard } from '@/components/cards/KPICard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SkeletonCard, SkeletonChart } from '@/components/ui/skeleton'
-import { useLoading } from '@/hooks/useLoading'
-import {
-  getDashboardSummary,
-  getUnitSizeMetrics,
-  monthlyMetrics,
-} from '@/data/mockData'
+import { useDashboard, useUnitStats } from '@/hooks/useApi'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { Percent, Euro, Box, Clock } from 'lucide-react'
 
@@ -40,14 +35,56 @@ function ExecutiveOverviewSkeleton() {
   )
 }
 
+function ErrorDisplay({ message }: { message: string }) {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="text-center">
+        <p className="text-red-500 mb-2">Error loading data</p>
+        <p className="text-muted-foreground text-sm">{message}</p>
+      </div>
+    </div>
+  )
+}
+
 export function ExecutiveOverview() {
-  const isLoading = useLoading(1000)
-  const summary = getDashboardSummary()
-  const unitSizeData = getUnitSizeMetrics()
+  const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboard()
+  const { data: unitStats, isLoading: statsLoading, error: statsError } = useUnitStats()
+
+  const isLoading = dashboardLoading || statsLoading
+  const error = dashboardError || statsError
 
   if (isLoading) {
     return <ExecutiveOverviewSkeleton />
   }
+
+  if (error || !dashboardData || !unitStats) {
+    return <ErrorDisplay message={error || 'Failed to load data'} />
+  }
+
+  const { overview, trends, historicalMetrics } = dashboardData
+
+  // Transform historical metrics for charts
+  const revenueChartData = historicalMetrics.map((m) => ({
+    month: m.month.substring(5), // Extract MM from YYYY-MM
+    revenue: m.totalRevenue,
+  }))
+
+  const occupancyChartData = historicalMetrics.map((m) => ({
+    month: m.month.substring(5),
+    occupancyRate: parseFloat(String(m.occupancyRate)),
+  }))
+
+  // Transform unit stats by size for bar chart
+  const unitSizeData = unitStats.bySize.map((item) => ({
+    size: item.size,
+    occupiedUnits: item.occupied,
+    availableUnits: item.available,
+  }))
+
+  // Calculate average rental duration from metrics
+  const avgRentalDuration = historicalMetrics.length > 0
+    ? (historicalMetrics.reduce((sum, m) => sum + (m.averageRentalDuration || 0), 0) / historicalMetrics.length).toFixed(1)
+    : '0'
 
   return (
     <div className="space-y-6">
@@ -55,27 +92,29 @@ export function ExecutiveOverview() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KPICard
           title="Belegungsrate"
-          value={formatPercent(summary.totalOccupancyRate)}
+          value={formatPercent(parseFloat(overview.occupancyRate))}
+          change={trends.occupancyChange}
+          changeLabel="vs. Vormonat"
           icon={Percent}
           iconColor="text-blue-500"
         />
         <KPICard
           title="Monatlicher Umsatz"
-          value={formatCurrency(summary.monthlyRevenue)}
-          change={summary.revenueChangePercent}
+          value={formatCurrency(overview.currentRevenue)}
+          change={trends.revenueChange}
           changeLabel="vs. Vormonat"
           icon={Euro}
           iconColor="text-green-500"
         />
         <KPICard
           title="Verfügbare Einheiten"
-          value={`${summary.availableUnits} / ${summary.totalUnits}`}
+          value={`${overview.availableUnits} / ${overview.totalUnits}`}
           icon={Box}
           iconColor="text-orange-500"
         />
         <KPICard
           title="Ø Mietdauer"
-          value={`${summary.avgRentalDuration} Monate`}
+          value={`${avgRentalDuration} Monate`}
           icon={Clock}
           iconColor="text-purple-500"
         />
@@ -91,7 +130,7 @@ export function ExecutiveOverview() {
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyMetrics}>
+                <LineChart data={revenueChartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis
                     dataKey="month"
@@ -181,7 +220,7 @@ export function ExecutiveOverview() {
         <CardContent>
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyMetrics}>
+              <LineChart data={occupancyChartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis
                   dataKey="month"

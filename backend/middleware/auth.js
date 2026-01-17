@@ -72,6 +72,7 @@ const generateToken = (user) => {
     username: user.username,
     email: user.email,
     role: user.role,
+    facilityId: user.facilityId,
   };
 
   return jwt.sign(payload, config.jwt.secret, {
@@ -93,10 +94,38 @@ const generateRefreshToken = (user) => {
   });
 };
 
+/**
+ * Middleware to check facility access - ensures user can only access their facility's data
+ * Admins can access all facilities
+ */
+const checkFacilityAccess = (req, res, next) => {
+  if (!req.user) {
+    throw new UnauthorizedError('Authentication required');
+  }
+
+  // Admins can access all facilities
+  if (req.user.role === 'admin') {
+    return next();
+  }
+
+  // Check if user has access to the requested facility
+  const requestedFacilityId = req.params.facilityId || req.body.facilityId || req.query.facilityId;
+
+  if (requestedFacilityId && parseInt(requestedFacilityId) !== req.user.facilityId) {
+    throw new ForbiddenError('Access denied: Cannot access data from other facilities');
+  }
+
+  // Set user's facility ID for queries
+  req.facilityId = req.user.facilityId;
+
+  next();
+};
+
 module.exports = {
   authenticateToken,
   optionalAuth,
   authorizeRoles,
   generateToken,
   generateRefreshToken,
+  checkFacilityAccess,
 };

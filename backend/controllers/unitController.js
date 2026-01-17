@@ -29,6 +29,11 @@ const getAll = async (req, res) => {
   // Build where clause
   const where = {};
 
+  // Filter by facility for non-admin users
+  if (req.facilityId) {
+    where.facilityId = req.facilityId;
+  }
+
   if (size) {
     where.size = size;
   }
@@ -74,7 +79,15 @@ const getAll = async (req, res) => {
  * GET /api/units/:id
  */
 const getById = async (req, res) => {
-  const unit = await Unit.findByPk(req.params.id, {
+  const where = { id: req.params.id };
+
+  // Filter by facility for non-admin users
+  if (req.facilityId) {
+    where.facilityId = req.facilityId;
+  }
+
+  const unit = await Unit.findOne({
+    where,
     include: [
       {
         model: Customer,
@@ -224,12 +237,18 @@ const releaseUnit = async (req, res) => {
  * GET /api/units/stats
  */
 const getStats = async (req, res) => {
+  // Build where clause for facility filtering
+  const where = {};
+  if (req.facilityId) {
+    where.facilityId = req.facilityId;
+  }
+
   // Total units
-  const totalUnits = await Unit.count();
+  const totalUnits = await Unit.count({ where });
 
   // Occupied units
   const occupiedUnits = await Unit.count({
-    where: { isOccupied: true },
+    where: { ...where, isOccupied: true },
   });
 
   // Occupancy rate
@@ -237,6 +256,7 @@ const getStats = async (req, res) => {
 
   // Units by size
   const bySize = await Unit.findAll({
+    where,
     attributes: [
       'size',
       [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'total'],
@@ -254,6 +274,7 @@ const getStats = async (req, res) => {
 
   // Average price per size
   const avgPriceBySize = await Unit.findAll({
+    where,
     attributes: [
       'size',
       [require('sequelize').fn('AVG', require('sequelize').col('pricePerMonth')), 'avgPrice'],
@@ -263,11 +284,12 @@ const getStats = async (req, res) => {
   });
 
   // Total potential revenue (all units occupied)
-  const totalPotentialRevenue = await Unit.sum('pricePerMonth');
+  const totalPotentialRevenue = await Unit.sum('pricePerMonth', { where });
 
   // Current monthly revenue (only occupied units)
+  const occupiedWhere = { ...where, isOccupied: true };
   const currentRevenue = await Unit.sum('pricePerMonth', {
-    where: { isOccupied: true },
+    where: occupiedWhere,
   });
 
   return response.success(res, {

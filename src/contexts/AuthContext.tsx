@@ -1,10 +1,26 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
+interface Facility {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  state?: string;
+  zipCode: string;
+  country: string;
+  phone?: string;
+  email?: string;
+  totalUnits: number;
+  isActive: boolean;
+}
+
 interface User {
   id: number;
   username: string;
   email: string;
   role: 'admin' | 'manager' | 'staff';
+  facilityId: number;
+  facility: Facility;
 }
 
 interface AuthContextType {

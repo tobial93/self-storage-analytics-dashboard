@@ -76,8 +76,16 @@ const login = async (req, res) => {
   const token = generateToken(user);
   const refreshToken = generateRefreshToken(user);
 
+  // Fetch user with facility data
+  const userWithFacility = await User.findByPk(user.id, {
+    include: [{
+      model: require('../models').Facility,
+      as: 'facility',
+    }],
+  });
+
   return response.success(res, {
-    user: user.toJSON(),
+    user: userWithFacility.toJSON(),
     token,
     refreshToken,
   }, 'Login successful');

@@ -47,6 +47,14 @@ module.exports = (sequelize) => {
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    facilityId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'facilities',
+        key: 'id',
+      },
+    },
   }, {
     tableName: 'units',
     timestamps: true,
@@ -56,6 +64,10 @@ module.exports = (sequelize) => {
     Unit.belongsTo(models.Customer, {
       foreignKey: 'customerId',
       as: 'customer',
+    });
+    Unit.belongsTo(models.Facility, {
+      foreignKey: 'facilityId',
+      as: 'facility',
     });
   };
 

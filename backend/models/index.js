@@ -5,12 +5,14 @@ const UserModel = require('./User');
 const UnitModel = require('./Unit');
 const CustomerModel = require('./Customer');
 const MetricModel = require('./Metric');
+const FacilityModel = require('./Facility');
 
 // Initialize models
 const User = UserModel(sequelize);
 const Unit = UnitModel(sequelize);
 const Customer = CustomerModel(sequelize);
 const Metric = MetricModel(sequelize);
+const Facility = FacilityModel(sequelize);
 
 // Create models object
 const models = {
@@ -18,6 +20,7 @@ const models = {
   Unit,
   Customer,
   Metric,
+  Facility,
 };
 
 // Set up associations
