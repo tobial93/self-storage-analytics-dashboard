@@ -1,29 +1,18 @@
 const { Sequelize } = require('sequelize');
+const path = require('path');
 
 const env = process.env.NODE_ENV || 'development';
 
 const config = {
   development: {
-    url: process.env.DATABASE_URL || 'postgres://localhost:5432/self_storage_db',
-    dialect: 'postgres',
+    dialect: 'sqlite',
+    storage: path.join(__dirname, '..', 'database.sqlite'),
     logging: console.log,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
   },
   test: {
-    url: process.env.TEST_DATABASE_URL || 'postgres://localhost:5432/self_storage_test',
-    dialect: 'postgres',
+    dialect: 'sqlite',
+    storage: ':memory:',
     logging: false,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
   },
   production: {
     url: process.env.DATABASE_URL,
@@ -46,11 +35,21 @@ const config = {
 
 const currentConfig = config[env];
 
-const sequelize = new Sequelize(currentConfig.url, {
-  dialect: currentConfig.dialect,
-  logging: currentConfig.logging,
-  pool: currentConfig.pool,
-  dialectOptions: currentConfig.dialectOptions,
-});
+let sequelize;
+
+if (currentConfig.url) {
+  sequelize = new Sequelize(currentConfig.url, {
+    dialect: currentConfig.dialect,
+    logging: currentConfig.logging,
+    pool: currentConfig.pool,
+    dialectOptions: currentConfig.dialectOptions,
+  });
+} else {
+  sequelize = new Sequelize({
+    dialect: currentConfig.dialect,
+    storage: currentConfig.storage,
+    logging: currentConfig.logging,
+  });
+}
 
 module.exports = { sequelize, config: currentConfig };

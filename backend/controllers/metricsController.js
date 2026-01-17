@@ -102,7 +102,7 @@ const calculateCurrentMetrics = async (req, res) => {
       [
         sequelize.fn(
           'SUM',
-          sequelize.literal("CASE WHEN \"isOccupied\" = true THEN 1 ELSE 0 END")
+          sequelize.literal("CASE WHEN isOccupied = 1 THEN 1 ELSE 0 END")
         ),
         'occupied',
       ],
@@ -285,7 +285,7 @@ const getOccupancyAnalytics = async (req, res) => {
       [
         sequelize.fn(
           'SUM',
-          sequelize.literal("CASE WHEN \"isOccupied\" = true THEN 1 ELSE 0 END")
+          sequelize.literal("CASE WHEN isOccupied = 1 THEN 1 ELSE 0 END")
         ),
         'occupied',
       ],

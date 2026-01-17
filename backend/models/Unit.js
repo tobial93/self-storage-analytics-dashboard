@@ -7,8 +7,14 @@ module.exports = (sequelize) => {
       primaryKey: true,
     },
     size: {
-      type: DataTypes.ENUM('5m²', '10m²', '15m²', '20m²', '30m²'),
+      type: DataTypes.STRING(10),
       allowNull: false,
+      validate: {
+        isIn: {
+          args: [['5m²', '10m²', '15m²', '20m²', '30m²']],
+          msg: 'Size must be one of: 5m², 10m², 15m², 20m², 30m²',
+        },
+      },
     },
     pricePerMonth: {
       type: DataTypes.DECIMAL(10, 2),
@@ -27,10 +33,6 @@ module.exports = (sequelize) => {
     customerId: {
       type: DataTypes.STRING(10),
       allowNull: true,
-      references: {
-        model: 'customers',
-        key: 'id',
-      },
     },
     rentedSince: {
       type: DataTypes.DATEONLY,
@@ -48,17 +50,6 @@ module.exports = (sequelize) => {
   }, {
     tableName: 'units',
     timestamps: true,
-    indexes: [
-      {
-        fields: ['size'],
-      },
-      {
-        fields: ['isOccupied'],
-      },
-      {
-        fields: ['customerId'],
-      },
-    ],
   });
 
   Unit.associate = (models) => {
@@ -68,7 +59,6 @@ module.exports = (sequelize) => {
     });
   };
 
-  // Get size in square meters as a number
   Unit.prototype.getSizeInSqm = function() {
     const sizeMap = {
       '5m²': 5,

@@ -30,8 +30,14 @@ module.exports = (sequelize) => {
       allowNull: true,
     },
     type: {
-      type: DataTypes.ENUM('private', 'business'),
+      type: DataTypes.STRING(20),
       allowNull: false,
+      validate: {
+        isIn: {
+          args: [['private', 'business']],
+          msg: 'Type must be private or business',
+        },
+      },
     },
     companyName: {
       type: DataTypes.STRING(255),
@@ -56,17 +62,6 @@ module.exports = (sequelize) => {
   }, {
     tableName: 'customers',
     timestamps: true,
-    indexes: [
-      {
-        fields: ['type'],
-      },
-      {
-        fields: ['startDate'],
-      },
-      {
-        fields: ['endDate'],
-      },
-    ],
   });
 
   Customer.associate = (models) => {
@@ -76,12 +71,10 @@ module.exports = (sequelize) => {
     });
   };
 
-  // Check if customer is currently active
   Customer.prototype.isActive = function() {
     return !this.endDate || new Date(this.endDate) >= new Date();
   };
 
-  // Calculate months since start date
   Customer.prototype.getMonthsAsCustomer = function() {
     const start = new Date(this.startDate);
     const end = this.endDate ? new Date(this.endDate) : new Date();

@@ -12,9 +12,7 @@ module.exports = (sequelize) => {
     username: {
       type: DataTypes.STRING(50),
       allowNull: false,
-      unique: {
-        msg: 'Username already exists',
-      },
+      unique: true,
       validate: {
         len: {
           args: [3, 50],
@@ -25,9 +23,7 @@ module.exports = (sequelize) => {
     email: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      unique: {
-        msg: 'Email already exists',
-      },
+      unique: true,
       validate: {
         isEmail: {
           msg: 'Must be a valid email address',
@@ -37,17 +33,17 @@ module.exports = (sequelize) => {
     password: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      validate: {
-        len: {
-          args: [6, 255],
-          msg: 'Password must be at least 6 characters',
-        },
-      },
     },
     role: {
-      type: DataTypes.ENUM('admin', 'manager', 'staff'),
+      type: DataTypes.STRING(20),
       defaultValue: 'staff',
       allowNull: false,
+      validate: {
+        isIn: {
+          args: [['admin', 'manager', 'staff']],
+          msg: 'Role must be admin, manager, or staff',
+        },
+      },
     },
     isActive: {
       type: DataTypes.BOOLEAN,
@@ -79,7 +75,7 @@ module.exports = (sequelize) => {
     },
     scopes: {
       withPassword: {
-        attributes: { include: ['password'] },
+        attributes: {},
       },
     },
   });

@@ -41,9 +41,9 @@ const getAll = async (req, res) => {
 
   if (search) {
     where[Op.or] = [
-      { name: { [Op.iLike]: `%${search}%` } },
-      { email: { [Op.iLike]: `%${search}%` } },
-      { companyName: { [Op.iLike]: `%${search}%` } },
+      { name: { [Op.like]: `%${search}%` } },
+      { email: { [Op.like]: `%${search}%` } },
+      { companyName: { [Op.like]: `%${search}%` } },
     ];
   }
 

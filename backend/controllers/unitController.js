@@ -40,7 +40,7 @@ const getAll = async (req, res) => {
   }
 
   if (search) {
-    where.id = { [Op.iLike]: `%${search}%` };
+    where.id = { [Op.like]: `%${search}%` };
   }
 
   // Validate sort field
@@ -243,7 +243,7 @@ const getStats = async (req, res) => {
       [
         require('sequelize').fn(
           'SUM',
-          require('sequelize').literal("CASE WHEN \"isOccupied\" = true THEN 1 ELSE 0 END")
+          require('sequelize').literal("CASE WHEN isOccupied = 1 THEN 1 ELSE 0 END")
         ),
         'occupied',
       ],
