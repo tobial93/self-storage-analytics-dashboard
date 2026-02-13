@@ -1,4 +1,5 @@
 import { Menu, Moon, Sun } from 'lucide-react'
+import { OrganizationSwitcher, UserButton } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/contexts/ThemeContext'
 import { ExportButton } from '@/components/reports/ExportButton'
@@ -25,8 +26,21 @@ export function Header({ onMenuClick, title }: HeaderProps) {
         <h1 className="text-xl font-semibold">{title}</h1>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        {/* Organization Switcher */}
+        <OrganizationSwitcher
+          appearance={{
+            elements: {
+              rootBox: 'flex items-center',
+              organizationSwitcherTrigger: 'px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800',
+            },
+          }}
+          createOrganizationUrl="/create-organization"
+          afterSelectOrganizationUrl="/"
+        />
+
         <ExportButton />
+
         <Button
           variant="ghost"
           size="icon"
@@ -37,6 +51,16 @@ export function Header({ onMenuClick, title }: HeaderProps) {
           <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
         </Button>
+
+        {/* User Menu */}
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: 'w-9 h-9',
+            },
+          }}
+          afterSignOutUrl="/sign-in"
+        />
       </div>
     </header>
   )

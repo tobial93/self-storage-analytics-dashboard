@@ -20,11 +20,15 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { SkeletonCard, SkeletonChart, SkeletonTable } from '@/components/ui/skeleton'
 import { useLoading } from '@/hooks/useLoading'
-import { getUnitSizeMetrics, monthlyMetrics } from '@/data/mockData'
-import { formatCurrency, formatPercent } from '@/lib/utils'
-import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react'
-
-const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6']
+import {
+  mockCampaignPerformance,
+  mockCampaigns,
+  formatCurrency,
+  formatPercentage,
+  getPlatformColor,
+  getPlatformName,
+} from '@/data/mockData'
+import { TrendingUp, TrendingDown, Target } from 'lucide-react'
 
 function UnitPerformanceSkeleton() {
   return (
@@ -35,27 +39,27 @@ function UnitPerformanceSkeleton() {
         <SkeletonCard />
       </div>
       <SkeletonChart height={300} />
-      <SkeletonTable rows={5} />
+      <SkeletonTable rows={6} />
     </div>
   )
 }
 
 export function UnitPerformance() {
   const isLoading = useLoading(1000)
-  const unitSizeData = getUnitSizeMetrics()
+  const campaignData = mockCampaignPerformance
+  const activeCampaigns = mockCampaigns.filter(c => c.status === 'active')
 
   if (isLoading) {
     return <UnitPerformanceSkeleton />
   }
 
-  // Calculate most/least profitable
-  const sortedByRevenue = [...unitSizeData].sort((a, b) => b.revenuePerSqm - a.revenuePerSqm)
-  const mostProfitable = sortedByRevenue[0]
-  const leastProfitable = sortedByRevenue[sortedByRevenue.length - 1]
+  // Find best and worst performers
+  const sortedByROAS = [...campaignData].sort((a, b) => b.roas - a.roas)
+  const bestPerformer = sortedByROAS[0]
+  const worstPerformer = sortedByROAS[sortedByROAS.length - 1]
 
-  // Calculate turnover rate (simplified: new customers / total customers)
-  const lastMonth = monthlyMetrics[monthlyMetrics.length - 1]
-  const turnoverRate = ((lastMonth.newCustomers + lastMonth.churnedCustomers) / lastMonth.occupiedUnits) * 100
+  // Calculate average budget utilization
+  const avgBudgetUtilization = campaignData.reduce((sum, c) => sum + c.budgetUtilization, 0) / campaignData.length
 
   return (
     <div className="space-y-6">
@@ -68,10 +72,10 @@ export function UnitPerformance() {
                 <TrendingUp className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Profitabelste Größe</p>
-                <p className="text-2xl font-bold">{mostProfitable.size}</p>
+                <p className="text-sm text-muted-foreground">Top Campaign</p>
+                <p className="text-lg font-bold truncate max-w-[150px]">{bestPerformer.campaignName}</p>
                 <p className="text-sm text-green-600">
-                  {formatCurrency(mostProfitable.revenuePerSqm)}/m²
+                  ROAS: {bestPerformer.roas.toFixed(2)}x
                 </p>
               </div>
             </div>
@@ -85,10 +89,10 @@ export function UnitPerformance() {
                 <TrendingDown className="h-6 w-6 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Am wenigsten profitabel</p>
-                <p className="text-2xl font-bold">{leastProfitable.size}</p>
+                <p className="text-sm text-muted-foreground">Needs Attention</p>
+                <p className="text-lg font-bold truncate max-w-[150px]">{worstPerformer.campaignName}</p>
                 <p className="text-sm text-red-600">
-                  {formatCurrency(leastProfitable.revenuePerSqm)}/m²
+                  ROAS: {worstPerformer.roas.toFixed(2)}x
                 </p>
               </div>
             </div>
@@ -99,38 +103,40 @@ export function UnitPerformance() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-                <Minus className="h-6 w-6 text-blue-600" />
+                <Target className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Einheiten-Fluktuation</p>
-                <p className="text-2xl font-bold">{turnoverRate.toFixed(1)}%</p>
-                <p className="text-sm text-muted-foreground">pro Monat</p>
+                <p className="text-sm text-muted-foreground">Avg Budget Used</p>
+                <p className="text-2xl font-bold">{avgBudgetUtilization.toFixed(1)}%</p>
+                <p className="text-sm text-muted-foreground">across {activeCampaigns.length} campaigns</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Occupancy by Size Chart */}
+      {/* ROAS by Campaign Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Belegungsrate nach Größe</CardTitle>
+          <CardTitle>Campaign Performance (ROAS)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={unitSizeData}>
+              <BarChart data={campaignData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis
-                  dataKey="size"
+                  type="number"
                   className="text-xs"
                   tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(value) => `${value}x`}
                 />
                 <YAxis
+                  type="category"
+                  dataKey="campaignName"
                   className="text-xs"
                   tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  domain={[0, 100]}
-                  tickFormatter={(value) => `${value}%`}
+                  width={120}
                 />
                 <Tooltip
                   contentStyle={{
@@ -138,11 +144,11 @@ export function UnitPerformance() {
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
                   }}
-                  formatter={(value) => [`${value}%`, 'Belegung']}
+                  formatter={(value) => [`${Number(value).toFixed(2)}x`, 'ROAS']}
                 />
-                <Bar dataKey="occupancyRate" radius={[4, 4, 0, 0]}>
-                  {unitSizeData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                <Bar dataKey="roas" radius={[0, 4, 4, 0]}>
+                  {campaignData.map((entry) => (
+                    <Cell key={entry.campaignId} fill={getPlatformColor(entry.platform)} />
                   ))}
                 </Bar>
               </BarChart>
@@ -151,80 +157,90 @@ export function UnitPerformance() {
         </CardContent>
       </Card>
 
-      {/* Detailed Table */}
+      {/* Detailed Campaign Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Umsatz pro Quadratmeter</CardTitle>
+          <CardTitle>Campaign Details</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Größe</TableHead>
-                <TableHead className="text-right">Einheiten</TableHead>
-                <TableHead className="text-right">Belegt</TableHead>
-                <TableHead className="text-right">Belegung</TableHead>
-                <TableHead className="text-right">Ø Preis</TableHead>
-                <TableHead className="text-right">€/m²</TableHead>
-                <TableHead className="text-right">Gesamt</TableHead>
-                <TableHead>Trend</TableHead>
+                <TableHead>Campaign</TableHead>
+                <TableHead>Platform</TableHead>
+                <TableHead className="text-right">Spend</TableHead>
+                <TableHead className="text-right">Revenue</TableHead>
+                <TableHead className="text-right">ROAS</TableHead>
+                <TableHead className="text-right">Conversions</TableHead>
+                <TableHead className="text-right">CPA</TableHead>
+                <TableHead className="text-right">CTR</TableHead>
+                <TableHead>Performance</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {unitSizeData.map((item, index) => {
-                const avgRevenuePerSqm = unitSizeData.reduce((sum, i) => sum + i.revenuePerSqm, 0) / unitSizeData.length
-                const isAboveAvg = item.revenuePerSqm > avgRevenuePerSqm
-
-                return (
-                  <TableRow key={item.size}>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        style={{ borderColor: COLORS[index % COLORS.length] }}
-                      >
-                        {item.size}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{item.totalUnits}</TableCell>
-                    <TableCell className="text-right">{item.occupiedUnits}</TableCell>
-                    <TableCell className="text-right">
-                      <span
-                        className={
-                          item.occupancyRate >= 85
-                            ? 'text-green-600'
-                            : item.occupancyRate >= 70
-                            ? 'text-yellow-600'
-                            : 'text-red-600'
-                        }
-                      >
-                        {formatPercent(item.occupancyRate)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(item.avgPrice)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(item.revenuePerSqm)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(item.totalRevenue)}
-                    </TableCell>
-                    <TableCell>
-                      {isAboveAvg ? (
-                        <div className="flex items-center text-green-600">
-                          <ArrowUpRight className="h-4 w-4" />
-                          <span className="text-xs">Über Ø</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center text-red-600">
-                          <ArrowDownRight className="h-4 w-4" />
-                          <span className="text-xs">Unter Ø</span>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
+              {campaignData.map((campaign) => (
+                <TableRow key={campaign.campaignId}>
+                  <TableCell className="font-medium max-w-[200px] truncate">
+                    {campaign.campaignName}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      style={{ borderColor: getPlatformColor(campaign.platform) }}
+                    >
+                      {getPlatformName(campaign.platform)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(campaign.spend)}
+                  </TableCell>
+                  <TableCell className="text-right text-green-600 font-medium">
+                    {formatCurrency(campaign.revenue)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span
+                      className={
+                        campaign.roas >= 5
+                          ? 'text-green-600 font-semibold'
+                          : campaign.roas >= 3
+                          ? 'text-yellow-600'
+                          : 'text-red-600'
+                      }
+                    >
+                      {campaign.roas.toFixed(2)}x
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {campaign.conversions}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(campaign.cpa)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatPercentage(campaign.ctr)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        campaign.performance === 'excellent'
+                          ? 'default'
+                          : campaign.performance === 'good'
+                          ? 'secondary'
+                          : 'outline'
+                      }
+                      className={
+                        campaign.performance === 'excellent'
+                          ? 'bg-green-500'
+                          : campaign.performance === 'good'
+                          ? 'bg-blue-500'
+                          : ''
+                      }
+                    >
+                      {campaign.performance}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </CardContent>

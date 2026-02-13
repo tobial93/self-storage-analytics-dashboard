@@ -9,6 +9,7 @@ interface KPICardProps {
   changeLabel?: string
   icon: LucideIcon
   iconColor?: string
+  invertChange?: boolean // For metrics where decrease is good (e.g., CPA)
 }
 
 export function KPICard({
@@ -18,9 +19,10 @@ export function KPICard({
   changeLabel,
   icon: Icon,
   iconColor = 'text-primary',
+  invertChange = false,
 }: KPICardProps) {
-  const isPositive = change && change > 0
-  const isNegative = change && change < 0
+  const isPositive = invertChange ? (change && change < 0) : (change && change > 0)
+  const isNegative = invertChange ? (change && change > 0) : (change && change < 0)
 
   return (
     <Card>
@@ -39,7 +41,7 @@ export function KPICard({
                     !isPositive && !isNegative && 'text-muted-foreground'
                   )}
                 >
-                  {isPositive && '+'}
+                  {change > 0 && '+'}
                   {change.toFixed(1)}%
                 </span>
                 {changeLabel && (

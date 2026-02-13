@@ -4,10 +4,10 @@ import { FileDown, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MonthlyReportPDF } from './MonthlyReportPDF'
 import {
-  getDashboardSummary,
-  getUnitSizeMetrics,
-  getCustomerSegments,
-  monthlyMetrics,
+  mockDashboardSummary,
+  mockCampaignPerformance,
+  mockMonthlyMetrics,
+  mockPlatformMetrics,
 } from '@/data/mockData'
 
 export function ExportButton() {
@@ -17,22 +17,18 @@ export function ExportButton() {
     setIsGenerating(true)
 
     try {
-      const summary = getDashboardSummary()
-      const unitMetrics = getUnitSizeMetrics()
-      const customerSegments = getCustomerSegments()
-
       const currentDate = new Date()
-      const reportMonth = currentDate.toLocaleDateString('de-DE', {
+      const reportMonth = currentDate.toLocaleDateString('en-US', {
         month: 'long',
         year: 'numeric',
       })
 
       const blob = await pdf(
         <MonthlyReportPDF
-          summary={summary}
-          unitMetrics={unitMetrics}
-          monthlyData={monthlyMetrics}
-          customerSegments={customerSegments}
+          summary={mockDashboardSummary}
+          campaignMetrics={mockCampaignPerformance}
+          monthlyData={mockMonthlyMetrics}
+          platformMetrics={mockPlatformMetrics}
           reportMonth={reportMonth}
         />
       ).toBlob()
@@ -40,7 +36,7 @@ export function ExportButton() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `StorageHub_Bericht_${currentDate.toISOString().split('T')[0]}.pdf`
+      link.download = `Marketing_Report_${currentDate.toISOString().split('T')[0]}.pdf`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -63,7 +59,7 @@ export function ExportButton() {
       {isGenerating ? (
         <>
           <Loader2 className="h-4 w-4 animate-spin" />
-          Erstelle PDF...
+          Generating PDF...
         </>
       ) : (
         <>

@@ -9,16 +9,13 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  ReferenceLine,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCard } from '@/components/cards/AlertCard'
-import { Badge } from '@/components/ui/badge'
-import { SkeletonCard, SkeletonChart, Skeleton } from '@/components/ui/skeleton'
+import { KPICard } from '@/components/cards/KPICard'
+import { SkeletonCard, SkeletonChart } from '@/components/ui/skeleton'
 import { useLoading } from '@/hooks/useLoading'
-import { getForecastData, getPricingAlerts, monthlyMetrics, getUnitSizeMetrics } from '@/data/mockData'
-import { formatCurrency } from '@/lib/utils'
-import { TrendingUp, Calendar, AlertCircle, Lightbulb } from 'lucide-react'
+import { mockForecastData, mockMonthlyMetrics, formatCurrency } from '@/data/mockData'
+import { TrendingUp, Calendar, DollarSign } from 'lucide-react'
 
 function ForecastSkeleton() {
   return (
@@ -29,129 +26,79 @@ function ForecastSkeleton() {
         <SkeletonCard />
       </div>
       <SkeletonChart height={350} />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card">
-          <div className="p-6 pb-2">
-            <Skeleton className="h-6 w-48" />
-          </div>
-          <div className="p-6 pt-2 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        </div>
-        <SkeletonChart height={280} />
-      </div>
-      <div className="rounded-xl border border-border bg-card p-6">
-        <Skeleton className="h-6 w-32 mb-4" />
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
-        </div>
-      </div>
+      <SkeletonChart height={300} />
     </div>
   )
 }
 
 export function Forecast() {
   const isLoading = useLoading(1000)
-  const forecastData = getForecastData()
-  const pricingAlerts = getPricingAlerts()
-  const unitSizeData = getUnitSizeMetrics()
+  const forecastData = mockForecastData
+  const monthlyData = mockMonthlyMetrics
 
   if (isLoading) {
     return <ForecastSkeleton />
   }
 
-  // Calculate seasonal trends (using monthly metrics)
-  const seasonalData = monthlyMetrics.map((m, index) => ({
-    ...m,
-    seasonalIndex: 1 + Math.sin((index - 2) * Math.PI / 6) * 0.1,
-  }))
+  // Calculate forecast metrics
+  const nextMonthForecast = forecastData.find(d => d.forecast)
+  const lastActual = forecastData.filter(d => d.actual).slice(-1)[0]
+  const forecastGrowth = nextMonthForecast && lastActual
+    ? ((nextMonthForecast.forecast! - lastActual.actual!) / lastActual.actual!) * 100
+    : 0
 
-  // Pricing recommendations based on occupancy
-  const pricingRecommendations = unitSizeData.map((size) => {
-    let recommendation = ''
-    let type: 'increase' | 'decrease' | 'maintain' = 'maintain'
-
-    if (size.occupancyRate > 90) {
-      recommendation = `Preiserhöhung um 5-10% möglich bei ${size.size} Einheiten`
-      type = 'increase'
-    } else if (size.occupancyRate < 70) {
-      recommendation = `Preissenkung um 5% empfohlen für ${size.size} Einheiten`
-      type = 'decrease'
-    } else {
-      recommendation = `Preise für ${size.size} Einheiten beibehalten`
-      type = 'maintain'
-    }
-
-    return { size: size.size, occupancy: size.occupancyRate, recommendation, type }
-  })
-
-  // Calculate 3-month forecast summary
-  const forecastOnly = forecastData.filter((d) => d.forecast)
-  const totalForecast = forecastOnly.reduce((sum, d) => sum + (d.forecast || 0), 0)
+  // Calculate average monthly growth from historical data
+  const avgMonthlyGrowth = monthlyData.reduce((sum, m) => sum + m.roas, 0) / monthlyData.length
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
+      {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-                <TrendingUp className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">3-Monats Prognose</p>
-                <p className="text-2xl font-bold">{formatCurrency(totalForecast)}</p>
-                <p className="text-sm text-green-600">+6% vs. Vorjahr</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
-                <AlertCircle className="h-6 w-6 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Preisanpassungen</p>
-                <p className="text-2xl font-bold">{pricingAlerts.length}</p>
-                <p className="text-sm text-muted-foreground">empfohlen</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                <Calendar className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Saisonaler Trend</p>
-                <p className="text-2xl font-bold">Stabil</p>
-                <p className="text-sm text-muted-foreground">nächste 3 Monate</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <KPICard
+          title="Next Month Forecast"
+          value={nextMonthForecast ? formatCurrency(nextMonthForecast.forecast!) : 'N/A'}
+          change={forecastGrowth}
+          changeLabel="vs. current month"
+          icon={TrendingUp}
+          iconColor="text-blue-500"
+        />
+        <KPICard
+          title="Forecast Confidence"
+          value="87%"
+          icon={Calendar}
+          iconColor="text-green-500"
+        />
+        <KPICard
+          title="Avg ROAS Trend"
+          value={`${avgMonthlyGrowth.toFixed(2)}x`}
+          icon={DollarSign}
+          iconColor="text-purple-500"
+        />
       </div>
 
       {/* Revenue Forecast Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>3-Monats Umsatzprognose</CardTitle>
+          <CardTitle>Revenue Forecast (Next 6 Months)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={forecastData}>
+                <defs>
+                  <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorRange" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis
                   dataKey="month"
@@ -161,7 +108,7 @@ export function Forecast() {
                 <YAxis
                   className="text-xs"
                   tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                 />
                 <Tooltip
                   contentStyle={{
@@ -169,61 +116,43 @@ export function Forecast() {
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
                   }}
-                  formatter={(value, name) => {
-                    const labels: Record<string, string> = {
-                      actual: 'Ist-Umsatz',
-                      forecast: 'Prognose',
-                      upperBound: 'Obere Grenze',
-                      lowerBound: 'Untere Grenze',
-                    }
-                    return [formatCurrency(Number(value)), labels[String(name)] || String(name)]
-                  }}
+                  formatter={(value) => formatCurrency(value as number)}
                 />
-                <Legend
-                  formatter={(value) => {
-                    const labels: Record<string, string> = {
-                      actual: 'Ist-Umsatz',
-                      forecast: 'Prognose',
-                      upperBound: 'Obere Grenze',
-                      lowerBound: 'Untere Grenze',
-                    }
-                    return labels[value] || value
-                  }}
+                <Legend />
+                <Area
+                  type="monotone"
+                  dataKey="actual"
+                  name="Actual Revenue"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  fill="url(#colorActual)"
                 />
-                <ReferenceLine
-                  x={forecastData.find((d) => d.forecast)?.month}
-                  stroke="hsl(var(--muted-foreground))"
+                <Area
+                  type="monotone"
+                  dataKey="forecast"
+                  name="Forecast"
+                  stroke="#22c55e"
+                  strokeWidth={2}
                   strokeDasharray="5 5"
-                  label={{ value: 'Prognose Start', position: 'top', fill: 'hsl(var(--muted-foreground))' }}
+                  fill="url(#colorForecast)"
                 />
                 <Area
                   type="monotone"
                   dataKey="upperBound"
-                  stroke="none"
-                  fill="hsl(var(--primary))"
-                  fillOpacity={0.1}
+                  name="Upper Bound"
+                  stroke="#f59e0b"
+                  strokeWidth={1}
+                  strokeOpacity={0.5}
+                  fill="url(#colorRange)"
                 />
                 <Area
                   type="monotone"
                   dataKey="lowerBound"
-                  stroke="none"
-                  fill="hsl(var(--background))"
-                  fillOpacity={1}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="actual"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--primary))' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="forecast"
-                  stroke="#22c55e"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={{ fill: '#22c55e' }}
+                  name="Lower Bound"
+                  stroke="#f59e0b"
+                  strokeWidth={1}
+                  strokeOpacity={0.5}
+                  fill="transparent"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -231,94 +160,96 @@ export function Forecast() {
         </CardContent>
       </Card>
 
-      {/* Two Column Layout */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Pricing Recommendations */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-yellow-500" />
-              Preisempfehlungen
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {pricingRecommendations.map((rec) => (
-                <div
-                  key={rec.size}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline">{rec.size}</Badge>
-                    <span className="text-sm">{rec.recommendation}</span>
-                  </div>
-                  <Badge
-                    variant={
-                      rec.type === 'increase'
-                        ? 'success'
-                        : rec.type === 'decrease'
-                        ? 'destructive'
-                        : 'secondary'
-                    }
-                  >
-                    {rec.occupancy.toFixed(0)}% belegt
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* ROAS Trend */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Historical ROAS Trend</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis
+                  dataKey="month"
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(value) => `${value}x`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value) => [`${(value as number).toFixed(2)}x`, 'ROAS']}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="roas"
+                  name="ROAS"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(var(--primary))' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Seasonal Trends */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Saisonale Trends</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={seasonalData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis
-                    dataKey="month"
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <YAxis
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                    domain={[0.85, 1.15]}
-                    tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                    formatter={(value) => [
-                      `${(Number(value) * 100).toFixed(1)}%`,
-                      'Saisonindex',
-                    ]}
-                  />
-                  <ReferenceLine y={1} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                  <Line
-                    type="monotone"
-                    dataKey="seasonalIndex"
-                    name="Saisonindex"
-                    stroke="#8b5cf6"
-                    strokeWidth={2}
-                    dot={{ fill: '#8b5cf6' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+      {/* Forecast Insights */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Forecast Insights</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+              <TrendingUp className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-blue-900 dark:text-blue-100">
+                  Projected Growth
+                </h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  Revenue is expected to increase by {forecastGrowth.toFixed(1)}% next month based on
+                  current trends and seasonality patterns.
+                </p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Pricing Alerts */}
-      <AlertCard alerts={pricingAlerts} />
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-green-50 dark:bg-green-950/20">
+              <Calendar className="h-5 w-5 text-green-600 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-green-900 dark:text-green-100">
+                  Seasonality Pattern
+                </h4>
+                <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                  Historical data shows stronger performance in Q4, with a 12-15% increase in conversions
+                  compared to other quarters.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20">
+              <DollarSign className="h-5 w-5 text-purple-600 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-purple-900 dark:text-purple-100">
+                  ROAS Stability
+                </h4>
+                <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">
+                  Your ROAS has remained stable at 4.2-4.5x over the past 6 months, indicating
+                  consistent campaign performance.
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

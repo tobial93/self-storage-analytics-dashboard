@@ -1,9 +1,6 @@
 import {
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -21,20 +18,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { SkeletonCard, SkeletonChart, SkeletonPieChart, SkeletonTable } from '@/components/ui/skeleton'
+import { SkeletonCard, SkeletonChart, SkeletonTable } from '@/components/ui/skeleton'
 import { useLoading } from '@/hooks/useLoading'
 import {
-  getDashboardSummary,
-  getCustomerSegments,
-  monthlyMetrics,
-  customers,
-  units,
+  mockConversionFunnel,
+  mockAttributionData,
+  mockDashboardSummary,
+  formatPercentage,
+  formatNumber,
 } from '@/data/mockData'
-import { formatCurrency, formatPercent } from '@/lib/utils'
-import { Users, UserMinus, Euro, Building2 } from 'lucide-react'
+import { Target, TrendingUp, DollarSign } from 'lucide-react'
 
-const COLORS = ['#3b82f6', '#22c55e']
+const COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
 function CustomerAnalyticsSkeleton() {
   return (
@@ -46,89 +41,122 @@ function CustomerAnalyticsSkeleton() {
         <SkeletonCard />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <SkeletonChart height={300} />
-        <SkeletonPieChart />
+        <SkeletonChart height={400} />
+        <SkeletonChart height={400} />
       </div>
-      <SkeletonTable rows={10} />
+      <SkeletonTable rows={6} />
     </div>
   )
 }
 
 export function CustomerAnalytics() {
   const isLoading = useLoading(1000)
-  const summary = getDashboardSummary()
-  const segments = getCustomerSegments()
+  const funnelData = mockConversionFunnel
+  const attributionData = mockAttributionData
+  const summary = mockDashboardSummary
 
   if (isLoading) {
     return <CustomerAnalyticsSkeleton />
   }
 
-  // Get top customers by units rented
-  const activeCustomers = customers.filter((c) => !c.endDate)
-  const customerRevenue = activeCustomers.map((customer) => {
-    const customerUnits = units.filter((u) => u.customerId === customer.id)
-    const monthlyRevenue = customerUnits.reduce((sum, u) => sum + u.pricePerMonth, 0)
-    return {
-      ...customer,
-      unitsCount: customerUnits.length,
-      monthlyRevenue,
-    }
-  }).sort((a, b) => b.monthlyRevenue - a.monthlyRevenue).slice(0, 10)
-
-  // Prepare data for new customers chart
-  const customerTrendData = monthlyMetrics.map((m) => ({
-    month: m.month,
-    newCustomers: m.newCustomers,
-    churnedCustomers: m.churnedCustomers,
-    netGrowth: m.newCustomers - m.churnedCustomers,
-  }))
+  // Calculate conversion metrics
+  const totalImpressions = funnelData[0].users
+  const totalConversions = funnelData[funnelData.length - 1].users
+  const overallConversionRate = (totalConversions / totalImpressions) * 100
 
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Aktive Kunden"
-          value={summary.totalCustomers.toString()}
-          icon={Users}
+          title="Total Conversions"
+          value={summary.totalConversions.toLocaleString()}
+          change={summary.conversionsChange}
+          changeLabel="vs. last month"
+          icon={Target}
           iconColor="text-blue-500"
         />
         <KPICard
-          title="Churn Rate"
-          value={formatPercent(summary.churnRate)}
-          icon={UserMinus}
-          iconColor="text-red-500"
-        />
-        <KPICard
-          title="Ø Customer Lifetime Value"
-          value={formatCurrency(summary.avgCustomerLifetimeValue)}
-          icon={Euro}
+          title="Conversion Rate"
+          value={formatPercentage(overallConversionRate)}
+          icon={TrendingUp}
           iconColor="text-green-500"
         />
         <KPICard
-          title="Geschäftskunden"
-          value={`${segments.find((s) => s.type === 'business')?.count || 0}`}
-          icon={Building2}
+          title="Cost per Conversion"
+          value={`$${summary.overallCPA.toFixed(2)}`}
+          change={-summary.cpaChange}
+          changeLabel="vs. last month"
+          icon={DollarSign}
           iconColor="text-purple-500"
+          invertChange
+        />
+        <KPICard
+          title="Revenue per Conversion"
+          value={`$${(summary.totalRevenue / summary.totalConversions).toFixed(2)}`}
+          icon={TrendingUp}
+          iconColor="text-orange-500"
         />
       </div>
 
       {/* Charts Row */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* New Customers Trend */}
+        {/* Conversion Funnel */}
         <Card>
           <CardHeader>
-            <CardTitle>Kundenentwicklung (12 Monate)</CardTitle>
+            <CardTitle>Conversion Funnel</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="space-y-4">
+              {funnelData.map((stage, index) => (
+                <div key={stage.stage}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">{stage.stage}</span>
+                    <div className="text-right">
+                      <span className="text-sm font-bold">{formatNumber(stage.users)}</span>
+                      {index > 0 && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          ({formatPercentage(stage.conversionRate)})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-8">
+                    <div
+                      className="h-8 rounded-full flex items-center justify-end px-3 text-white text-xs font-medium transition-all"
+                      style={{
+                        width: `${stage.conversionRate}%`,
+                        backgroundColor: COLORS[index % COLORS.length],
+                      }}
+                    >
+                      {stage.dropoffRate > 0 && (
+                        <span className="opacity-80">-{formatPercentage(stage.dropoffRate)} drop</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Multi-Touch Attribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Attribution Models</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[380px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={customerTrendData}>
+                <BarChart data={attributionData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis
-                    dataKey="month"
+                    dataKey="channel"
                     className="text-xs"
                     tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
                   />
                   <YAxis
                     className="text-xs"
@@ -142,120 +170,60 @@ export function CustomerAnalytics() {
                     }}
                   />
                   <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="newCustomers"
-                    name="Neue Kunden"
-                    stroke="#22c55e"
-                    strokeWidth={2}
-                    dot={{ fill: '#22c55e' }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="churnedCustomers"
-                    name="Abgegangen"
-                    stroke="#ef4444"
-                    strokeWidth={2}
-                    dot={{ fill: '#ef4444' }}
-                  />
-                </LineChart>
+                  <Bar dataKey="firstTouch" name="First Touch" fill="#3b82f6" />
+                  <Bar dataKey="lastTouch" name="Last Touch" fill="#22c55e" />
+                  <Bar dataKey="linear" name="Linear" fill="#f59e0b" />
+                  <Bar dataKey="timeDecay" name="Time Decay" fill="#8b5cf6" />
+                </BarChart>
               </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Customer Segmentation */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Kundensegmentierung</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={segments.map(s => ({ ...s, name: s.type === 'private' ? 'Privat' : 'Geschäft' }))}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="count"
-                    nameKey="name"
-                    label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
-                  >
-                    {segments.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                    formatter={(value) => [`${value} Kunden`, '']}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-4 flex justify-center gap-8">
-              {segments.map((segment, index) => (
-                <div key={segment.type} className="flex items-center gap-2">
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: COLORS[index] }}
-                  />
-                  <span className="text-sm">
-                    {segment.type === 'private' ? 'Privat' : 'Geschäft'}:{' '}
-                    {segment.count} ({segment.percentage}%)
-                  </span>
-                </div>
-              ))}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Top Customers Table */}
+      {/* Attribution Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Top Kunden nach Umsatz</CardTitle>
+          <CardTitle>Channel Attribution Breakdown</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Kunde</TableHead>
-                <TableHead>Typ</TableHead>
-                <TableHead className="text-right">Einheiten</TableHead>
-                <TableHead className="text-right">Monatl. Umsatz</TableHead>
-                <TableHead>Seit</TableHead>
+                <TableHead>Channel</TableHead>
+                <TableHead className="text-right">First Touch</TableHead>
+                <TableHead className="text-right">Last Touch</TableHead>
+                <TableHead className="text-right">Linear</TableHead>
+                <TableHead className="text-right">Time Decay</TableHead>
+                <TableHead className="text-right">Total (Linear)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {customerRevenue.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell className="font-medium">{customer.name}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={customer.type === 'business' ? 'default' : 'secondary'}
-                    >
-                      {customer.type === 'business' ? 'Geschäft' : 'Privat'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{customer.unitsCount}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(customer.monthlyRevenue)}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(customer.startDate).toLocaleDateString('de-DE', {
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {attributionData.map((channel) => {
+                const totalLinear = attributionData.reduce((sum, c) => sum + c.linear, 0)
+                const sharePercent = (channel.linear / totalLinear) * 100
+
+                return (
+                  <TableRow key={channel.channel}>
+                    <TableCell className="font-medium">{channel.channel}</TableCell>
+                    <TableCell className="text-right">{channel.firstTouch}</TableCell>
+                    <TableCell className="text-right">{channel.lastTouch}</TableCell>
+                    <TableCell className="text-right font-semibold">{channel.linear}</TableCell>
+                    <TableCell className="text-right">{channel.timeDecay}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-16 bg-muted rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full"
+                            style={{ width: `${sharePercent}%` }}
+                          />
+                        </div>
+                        <span className="text-sm">{formatPercentage(sharePercent, 0)}</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </CardContent>

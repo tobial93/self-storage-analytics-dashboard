@@ -1,90 +1,80 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { PricingAlert } from '@/data/types'
-import { formatCurrency } from '@/lib/utils'
-import { AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
+import type { PerformanceAlert } from '@/data/types'
+import { AlertTriangle, AlertCircle, Info } from 'lucide-react'
+import { getPlatformName } from '@/data/mockData'
 
 interface AlertCardProps {
-  alerts: PricingAlert[]
+  alert: PerformanceAlert
 }
 
-export function AlertCard({ alerts }: AlertCardProps) {
-  const getPriorityVariant = (priority: PricingAlert['priority']) => {
-    switch (priority) {
+export function AlertCard({ alert }: AlertCardProps) {
+  const getSeverityIcon = (severity: PerformanceAlert['severity']) => {
+    switch (severity) {
       case 'high':
-        return 'destructive'
+        return <AlertTriangle className="h-4 w-4" />
       case 'medium':
-        return 'warning'
+        return <AlertCircle className="h-4 w-4" />
       case 'low':
-        return 'secondary'
+        return <Info className="h-4 w-4" />
     }
   }
 
-  const getPriorityLabel = (priority: PricingAlert['priority']) => {
-    switch (priority) {
+  const getSeverityColor = (severity: PerformanceAlert['severity']) => {
+    switch (severity) {
       case 'high':
-        return 'Hoch'
+        return 'border-red-500 bg-red-50 dark:bg-red-950/20'
       case 'medium':
-        return 'Mittel'
+        return 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20'
       case 'low':
-        return 'Niedrig'
+        return 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+    }
+  }
+
+  const getSeverityTextColor = (severity: PerformanceAlert['severity']) => {
+    switch (severity) {
+      case 'high':
+        return 'text-red-600 dark:text-red-400'
+      case 'medium':
+        return 'text-yellow-600 dark:text-yellow-400'
+      case 'low':
+        return 'text-blue-600 dark:text-blue-400'
+    }
+  }
+
+  const getTypeLabel = (type: PerformanceAlert['type']) => {
+    switch (type) {
+      case 'budget_exceeded':
+        return 'Budget Alert'
+      case 'low_roas':
+        return 'Low ROAS'
+      case 'high_cpa':
+        return 'High CPA'
+      case 'low_ctr':
+        return 'Low CTR'
+      case 'anomaly':
+        return 'Anomaly Detected'
     }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-yellow-500" />
-          Pricing Alerts
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {alerts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Keine Preisanpassungen empfohlen
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {alerts.map((alert) => {
-              const isIncrease = alert.suggestedPrice > alert.currentPrice
-              return (
-                <div
-                  key={alert.unitId}
-                  className="flex items-start justify-between rounded-lg border p-3"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Unit {alert.unitId}</span>
-                      <Badge variant="outline">{alert.size}</Badge>
-                      <Badge variant={getPriorityVariant(alert.priority)}>
-                        {getPriorityLabel(alert.priority)}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {alert.reason}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-right">
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        {formatCurrency(alert.currentPrice)}
-                      </p>
-                      <p className="font-medium">
-                        {formatCurrency(alert.suggestedPrice)}
-                      </p>
-                    </div>
-                    {isIncrease ? (
-                      <TrendingUp className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <TrendingDown className="h-5 w-5 text-red-500" />
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+    <Card className={`border-l-4 ${getSeverityColor(alert.severity)}`}>
+      <CardContent className="p-4">
+        <div className="space-y-2">
+          <div className="flex items-start justify-between">
+            <div className={`flex items-center gap-2 ${getSeverityTextColor(alert.severity)}`}>
+              {getSeverityIcon(alert.severity)}
+              <span className="text-sm font-semibold">{getTypeLabel(alert.type)}</span>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {getPlatformName(alert.platform)}
+            </Badge>
           </div>
-        )}
+          <div>
+            <p className="text-sm font-medium">{alert.campaignName}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{alert.message}</p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )

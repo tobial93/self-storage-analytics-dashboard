@@ -2,13 +2,16 @@ import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
-  Box,
+  Target,
   Users,
   TrendingUp,
-  Warehouse,
+  BarChart3,
   X,
+  Cable,
+  Settings,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useCurrentOrganization } from '@/contexts/OrganizationContext'
 
 interface SidebarProps {
   isOpen: boolean
@@ -16,13 +19,20 @@ interface SidebarProps {
 }
 
 const navigation = [
-  { name: 'Executive Overview', href: '/', icon: LayoutDashboard },
-  { name: 'Unit Performance', href: '/units', icon: Box },
-  { name: 'Customer Analytics', href: '/customers', icon: Users },
+  { name: 'Overview', href: '/', icon: LayoutDashboard },
+  { name: 'Campaigns', href: '/units', icon: Target },
+  { name: 'Conversions', href: '/customers', icon: Users },
   { name: 'Forecast', href: '/forecast', icon: TrendingUp },
 ]
 
+const settingsNavigation = [
+  { name: 'Integrations', href: '/integrations', icon: Cable },
+  { name: 'Settings', href: '/settings', icon: Settings },
+]
+
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const { organizationName, isLoading } = useCurrentOrganization()
+
   return (
     <>
       {/* Mobile overlay */}
@@ -44,8 +54,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Logo */}
           <div className="flex h-16 items-center justify-between border-b border-border px-4">
             <div className="flex items-center gap-2">
-              <Warehouse className="h-8 w-8 text-primary" />
-              <span className="font-bold text-lg">StorageHub</span>
+              <BarChart3 className="h-8 w-8 text-primary" />
+              <span className="font-bold text-lg">AdInsights</span>
             </div>
             <Button
               variant="ghost"
@@ -57,32 +67,67 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </Button>
           </div>
 
+          {/* Organization Info */}
+          {!isLoading && organizationName && (
+            <div className="px-4 py-3 border-b border-border bg-muted/30">
+              <p className="text-xs text-muted-foreground mb-1">Organization</p>
+              <p className="text-sm font-medium truncate">{organizationName}</p>
+            </div>
+          )}
+
           {/* Navigation */}
           <nav className="flex-1 space-y-1 p-4">
-            {navigation.map((item) => (
-              <NavLink
-                key={item.href}
-                to={item.href}
-                onClick={onClose}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  )
-                }
-              >
-                <item.icon className="h-5 w-5" />
-                {item.name}
-              </NavLink>
-            ))}
+            <div className="space-y-1">
+              {navigation.map((item) => (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    )
+                  }
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.name}
+                </NavLink>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div className="my-4 border-t border-border" />
+
+            {/* Settings Navigation */}
+            <div className="space-y-1">
+              {settingsNavigation.map((item) => (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    )
+                  }
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.name}
+                </NavLink>
+              ))}
+            </div>
           </nav>
 
           {/* Footer */}
           <div className="border-t border-border p-4">
             <p className="text-xs text-muted-foreground">
-              Self-Storage Analytics
+              Marketing Analytics Dashboard
             </p>
             <p className="text-xs text-muted-foreground">Version 1.0.0</p>
           </div>
