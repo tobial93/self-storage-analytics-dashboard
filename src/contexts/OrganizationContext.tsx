@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useOrganization, useUser } from '@clerk/clerk-react';
+import { useOrganization, useUser, useOrganizationList } from '@clerk/clerk-react';
 
 interface OrganizationContextType {
   organizationId: string | null;
@@ -18,7 +18,7 @@ interface OrganizationProviderProps {
 }
 
 export function OrganizationProvider({ children }: OrganizationProviderProps) {
-  const { organization, isLoaded: orgLoaded } = useOrganization();
+  const { organization, isLoaded: orgLoaded, membership } = useOrganization();
   const { user, isLoaded: userLoaded } = useUser();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -32,16 +32,13 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
   const getUserRole = (): 'admin' | 'manager' | 'viewer' | null => {
     if (!organization || !user) return null;
 
-    const membership = organization.memberships.find(
-      (m) => m.publicUserData.userId === user.id
-    );
-
-    if (!membership) return null;
+    // Use the membership from useOrganization hook
+    if (!membership) return 'viewer'; // Default to viewer if no membership found
 
     // Map Clerk roles to our app roles
     const clerkRole = membership.role;
-    if (clerkRole === 'org:admin') return 'admin';
-    if (clerkRole === 'org:manager') return 'manager';
+    if (clerkRole === 'org:admin' || clerkRole === 'admin') return 'admin';
+    if (clerkRole === 'org:member' || clerkRole === 'member') return 'manager';
     return 'viewer';
   };
 
