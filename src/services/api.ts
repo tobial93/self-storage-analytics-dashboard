@@ -1,9 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import type {
   Campaign,
-  DailyMetric,
+  DailyMetrics,
   PerformanceAlert,
-  ConversionEvent,
 } from '@/data/types'
 
 // ============================================================
@@ -140,7 +139,7 @@ export async function getCampaignMetrics(
   campaignId: string,
   startDate?: Date,
   endDate?: Date
-): Promise<DailyMetric[]> {
+): Promise<DailyMetrics[]> {
   let query = supabase
     .from('campaign_daily_metrics')
     .select('*')
@@ -169,7 +168,7 @@ export async function getMetricsByDateRange(
   orgId: string,
   startDate: Date,
   endDate: Date
-): Promise<DailyMetric[]> {
+): Promise<DailyMetrics[]> {
   const { data, error } = await supabase
     .from('campaign_daily_metrics')
     .select('*')

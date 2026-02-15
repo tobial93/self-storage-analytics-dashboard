@@ -1,4 +1,4 @@
-import { Cable, CheckCircle, XCircle } from 'lucide-react'
+import { Cable, XCircle } from 'lucide-react'
 
 export function Integrations() {
   return (

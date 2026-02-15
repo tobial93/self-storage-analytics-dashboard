@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useOrganization, useUser, useOrganizationList } from '@clerk/clerk-react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import { useOrganization, useUser } from '@clerk/clerk-react';
 
 interface OrganizationContextType {
   organizationId: string | null;
