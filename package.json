@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview --port ${PORT:-4173} --host 0.0.0.0"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.60.0",
