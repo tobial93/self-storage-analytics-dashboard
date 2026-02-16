@@ -145,7 +145,7 @@ export async function refreshAccessToken(
  */
 export async function syncGoogleAdsCampaigns(
   connectionId: string,
-  accessToken: string
+  _accessToken: string // Prefixed with _ to indicate intentionally unused
 ): Promise<void> {
   // TODO: Implement using google-ads-api library
   // This will:
