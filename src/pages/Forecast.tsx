@@ -41,10 +41,12 @@ export function Forecast() {
     if (!metrics) return []
     const byDate: Record<string, { date: string; revenue: number; spend: number; conversions: number }> = {}
     for (const m of metrics) {
-      if (!byDate[m.metric_date]) byDate[m.metric_date] = { date: m.metric_date, revenue: 0, spend: 0, conversions: 0 }
-      byDate[m.metric_date].revenue += Number(m.revenue || 0)
-      byDate[m.metric_date].spend += Number(m.spend || 0)
-      byDate[m.metric_date].conversions += Number(m.conversions || 0)
+      const d = m.metric_date
+      if (!d) continue
+      if (!byDate[d]) byDate[d] = { date: d, revenue: 0, spend: 0, conversions: 0 }
+      byDate[d].revenue += Number(m.revenue || 0)
+      byDate[d].spend += Number(m.spend || 0)
+      byDate[d].conversions += Number(m.conversions || 0)
     }
     return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date))
   }, [metrics])
@@ -103,7 +105,6 @@ export function Forecast() {
 
   if (isLoading) return <ForecastSkeleton />
 
-  const nextWeekForecast = forecastData.find(d => 'forecast' in d && d.forecast)
   const totalRevenue = dailyData.reduce((s, d) => s + d.revenue, 0)
   const totalSpend = dailyData.reduce((s, d) => s + d.spend, 0)
   const avgRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0

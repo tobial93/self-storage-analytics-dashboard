@@ -30,15 +30,19 @@ export interface PlatformMetrics {
 }
 
 export interface DailyMetrics {
-  date: string
+  id?: string
+  org_id?: string
+  campaign_id?: string
+  metric_date?: string
+  date?: string
   spend: number
   impressions: number
   clicks: number
   conversions: number
   revenue: number
-  ctr: number
-  cpa: number
-  roas: number
+  ctr?: number
+  cpa?: number
+  roas?: number
 }
 
 export interface MonthlyMetrics {

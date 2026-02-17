@@ -1,6 +1,4 @@
 import {
-  BarChart,
-  Bar,
   LineChart,
   Line,
   XAxis,
@@ -60,12 +58,14 @@ export function ExecutiveOverview() {
     if (!metrics) return []
     const byDate: Record<string, { date: string; revenue: number; spend: number; clicks: number }> = {}
     for (const m of metrics) {
-      if (!byDate[m.metric_date]) {
-        byDate[m.metric_date] = { date: m.metric_date, revenue: 0, spend: 0, clicks: 0 }
+      const d = m.metric_date
+      if (!d) continue
+      if (!byDate[d]) {
+        byDate[d] = { date: d, revenue: 0, spend: 0, clicks: 0 }
       }
-      byDate[m.metric_date].revenue += Number(m.revenue || 0)
-      byDate[m.metric_date].spend += Number(m.spend || 0)
-      byDate[m.metric_date].clicks += Number(m.clicks || 0)
+      byDate[d].revenue += Number(m.revenue || 0)
+      byDate[d].spend += Number(m.spend || 0)
+      byDate[d].clicks += Number(m.clicks || 0)
     }
     return Object.values(byDate)
       .sort((a, b) => a.date.localeCompare(b.date))
@@ -77,7 +77,9 @@ export function ExecutiveOverview() {
     if (!metrics || !campaigns) return []
     const byCampaign: Record<string, number> = {}
     for (const m of metrics) {
-      byCampaign[m.campaign_id] = (byCampaign[m.campaign_id] || 0) + Number(m.spend || 0)
+      const cid = m.campaign_id
+      if (!cid) continue
+      byCampaign[cid] = (byCampaign[cid] || 0) + Number(m.spend || 0)
     }
     return campaigns
       .map(c => ({ name: c.name, value: Math.round((byCampaign[c.id] || 0) * 100) / 100 }))
@@ -90,11 +92,13 @@ export function ExecutiveOverview() {
     if (!metrics || !campaigns) return []
     const stats: Record<string, { spend: number; clicks: number; conversions: number; revenue: number }> = {}
     for (const m of metrics) {
-      if (!stats[m.campaign_id]) stats[m.campaign_id] = { spend: 0, clicks: 0, conversions: 0, revenue: 0 }
-      stats[m.campaign_id].spend += Number(m.spend || 0)
-      stats[m.campaign_id].clicks += Number(m.clicks || 0)
-      stats[m.campaign_id].conversions += Number(m.conversions || 0)
-      stats[m.campaign_id].revenue += Number(m.revenue || 0)
+      const cid = m.campaign_id
+      if (!cid) continue
+      if (!stats[cid]) stats[cid] = { spend: 0, clicks: 0, conversions: 0, revenue: 0 }
+      stats[cid].spend += Number(m.spend || 0)
+      stats[cid].clicks += Number(m.clicks || 0)
+      stats[cid].conversions += Number(m.conversions || 0)
+      stats[cid].revenue += Number(m.revenue || 0)
     }
     return campaigns
       .map(c => ({
@@ -189,7 +193,7 @@ export function ExecutiveOverview() {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={campaignSpend} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }) => `${name.split(' - ')[1] || name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                  <Pie data={campaignSpend} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }: { name?: string; percent?: number }) => { const n = name ?? ''; return `${n.split(' - ')[1] || n} ${((percent ?? 0) * 100).toFixed(0)}%` }} labelLine={false}>
                     {campaignSpend.map((_, index) => (
                       <Cell key={index} fill={COLORS[index % COLORS.length]} />
                     ))}

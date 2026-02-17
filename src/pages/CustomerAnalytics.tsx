@@ -48,10 +48,12 @@ export function CustomerAnalytics() {
     if (!metrics || !campaigns) return []
     const stats: Record<string, { impressions: number; clicks: number; conversions: number }> = {}
     for (const m of metrics) {
-      if (!stats[m.campaign_id]) stats[m.campaign_id] = { impressions: 0, clicks: 0, conversions: 0 }
-      stats[m.campaign_id].impressions += Number(m.impressions || 0)
-      stats[m.campaign_id].clicks += Number(m.clicks || 0)
-      stats[m.campaign_id].conversions += Number(m.conversions || 0)
+      const cid = m.campaign_id
+      if (!cid) continue
+      if (!stats[cid]) stats[cid] = { impressions: 0, clicks: 0, conversions: 0 }
+      stats[cid].impressions += Number(m.impressions || 0)
+      stats[cid].clicks += Number(m.clicks || 0)
+      stats[cid].conversions += Number(m.conversions || 0)
     }
     return campaigns.map((c, i) => ({
       name: c.name.replace('Storage Units - ', '').replace(' Units', ''),
@@ -67,7 +69,9 @@ export function CustomerAnalytics() {
     if (!metrics) return []
     const byWeek: Record<string, { week: string; conversions: number; clicks: number }> = {}
     for (const m of metrics) {
-      const date = new Date(m.metric_date)
+      const d = m.metric_date
+      if (!d) continue
+      const date = new Date(d)
       const weekStart = new Date(date)
       weekStart.setDate(date.getDate() - date.getDay())
       const key = weekStart.toISOString().split('T')[0]

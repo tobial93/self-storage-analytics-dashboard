@@ -94,7 +94,7 @@ export function Integrations() {
                         ? `Last synced ${formatDistanceToNow(new Date(connection.last_synced_at))} ago`
                         : 'Never synced'}
                     </p>
-                    {syncResult?.id === connection.id && (
+                    {syncResult !== null && syncResult.id === connection.id && (
                       <p className={`text-xs mt-1 ${syncResult.error ? 'text-red-500' : 'text-green-600'}`}>
                         {syncResult.message}
                       </p>

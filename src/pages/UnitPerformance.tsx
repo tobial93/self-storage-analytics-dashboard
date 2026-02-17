@@ -42,12 +42,14 @@ export function UnitPerformance() {
     if (!campaigns || !metrics) return []
     const stats: Record<string, { spend: number; revenue: number; clicks: number; impressions: number; conversions: number }> = {}
     for (const m of metrics) {
-      if (!stats[m.campaign_id]) stats[m.campaign_id] = { spend: 0, revenue: 0, clicks: 0, impressions: 0, conversions: 0 }
-      stats[m.campaign_id].spend += Number(m.spend || 0)
-      stats[m.campaign_id].revenue += Number(m.revenue || 0)
-      stats[m.campaign_id].clicks += Number(m.clicks || 0)
-      stats[m.campaign_id].impressions += Number(m.impressions || 0)
-      stats[m.campaign_id].conversions += Number(m.conversions || 0)
+      const cid = m.campaign_id
+      if (!cid) continue
+      if (!stats[cid]) stats[cid] = { spend: 0, revenue: 0, clicks: 0, impressions: 0, conversions: 0 }
+      stats[cid].spend += Number(m.spend || 0)
+      stats[cid].revenue += Number(m.revenue || 0)
+      stats[cid].clicks += Number(m.clicks || 0)
+      stats[cid].impressions += Number(m.impressions || 0)
+      stats[cid].conversions += Number(m.conversions || 0)
     }
     return campaigns.map((c, i) => {
       const s = stats[c.id] || { spend: 0, revenue: 0, clicks: 0, impressions: 0, conversions: 0 }
