@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createAuthenticatedClient } from '@/lib/supabase';
 
 // Google Ads OAuth configuration
 const GOOGLE_ADS_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -60,12 +60,15 @@ export function initiateGoogleAdsOAuth(orgId: string): void {
 
 /**
  * Exchange authorization code for access/refresh tokens
+ * Requires Clerk token to authenticate Supabase requests
  */
 export async function exchangeCodeForTokens(
   code: string,
-  orgId: string
+  orgId: string,
+  clerkToken: string
 ): Promise<void> {
   const config = getConfig();
+  const db = createAuthenticatedClient(clerkToken);
 
   // Exchange code for tokens
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -86,20 +89,38 @@ export async function exchangeCodeForTokens(
 
   const tokens = await tokenResponse.json();
 
-  // Get user's Google Ads customer ID
-  // For now, we'll store a placeholder - this needs to be fetched from Google Ads API
-  const customerId = 'PLACEHOLDER'; // TODO: Fetch from Google Ads API
+  // Ensure organization exists in database
+  const { data: existing } = await db
+    .from('organizations')
+    .select('id')
+    .eq('id', orgId)
+    .single();
 
-  // Store connection in database
-  const { error } = await supabase.from('ad_account_connections').insert({
+  if (!existing) {
+    const { error: orgError } = await db.from('organizations').insert({
+      id: orgId,
+      name: 'My Organization',
+      slug: orgId,
+      subscription_tier: 'free',
+    });
+    if (orgError && orgError.code !== '23505') {
+      console.error('Error creating organization:', orgError);
+      throw orgError;
+    }
+  }
+
+  // Store connection in database (upsert to handle reconnections)
+  const { error } = await db.from('ad_account_connections').upsert({
     org_id: orgId,
     platform: 'google_ads',
-    account_id: customerId,
-    account_name: 'Google Ads Account', // TODO: Fetch actual name
+    account_id: 'PLACEHOLDER',
+    account_name: 'Google Ads Account',
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
     token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
     is_active: true,
+  }, {
+    onConflict: 'org_id,platform,account_id',
   });
 
   if (error) {

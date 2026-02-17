@@ -9,35 +9,22 @@ import {
   Cell,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { SkeletonCard, SkeletonChart, SkeletonTable } from '@/components/ui/skeleton'
-import { useLoading } from '@/hooks/useLoading'
-import {
-  mockCampaignPerformance,
-  mockCampaigns,
-  formatCurrency,
-  formatPercentage,
-  getPlatformColor,
-  getPlatformName,
-} from '@/data/mockData'
+import { useCampaigns, useMetricsByDateRange } from '@/hooks/useApiData'
 import { TrendingUp, TrendingDown, Target } from 'lucide-react'
+import { useMemo } from 'react'
+
+const formatCurrency = (v: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v)
+
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
 function UnitPerformanceSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonCard />
-      </div>
+      <div className="grid gap-4 md:grid-cols-3"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>
       <SkeletonChart height={300} />
       <SkeletonTable rows={6} />
     </div>
@@ -45,25 +32,41 @@ function UnitPerformanceSkeleton() {
 }
 
 export function UnitPerformance() {
-  const isLoading = useLoading(1000)
-  const campaignData = mockCampaignPerformance
-  const activeCampaigns = mockCampaigns.filter(c => c.status === 'active')
+  const endDate = useMemo(() => new Date(), [])
+  const startDate = useMemo(() => { const d = new Date(); d.setDate(d.getDate() - 29); return d }, [])
 
-  if (isLoading) {
-    return <UnitPerformanceSkeleton />
-  }
+  const { data: campaigns, isLoading: campLoading } = useCampaigns()
+  const { data: metrics, isLoading: metricsLoading } = useMetricsByDateRange(startDate, endDate)
 
-  // Find best and worst performers
-  const sortedByROAS = [...campaignData].sort((a, b) => b.roas - a.roas)
-  const bestPerformer = sortedByROAS[0]
-  const worstPerformer = sortedByROAS[sortedByROAS.length - 1]
+  const campaignStats = useMemo(() => {
+    if (!campaigns || !metrics) return []
+    const stats: Record<string, { spend: number; revenue: number; clicks: number; impressions: number; conversions: number }> = {}
+    for (const m of metrics) {
+      if (!stats[m.campaign_id]) stats[m.campaign_id] = { spend: 0, revenue: 0, clicks: 0, impressions: 0, conversions: 0 }
+      stats[m.campaign_id].spend += Number(m.spend || 0)
+      stats[m.campaign_id].revenue += Number(m.revenue || 0)
+      stats[m.campaign_id].clicks += Number(m.clicks || 0)
+      stats[m.campaign_id].impressions += Number(m.impressions || 0)
+      stats[m.campaign_id].conversions += Number(m.conversions || 0)
+    }
+    return campaigns.map((c, i) => {
+      const s = stats[c.id] || { spend: 0, revenue: 0, clicks: 0, impressions: 0, conversions: 0 }
+      const roas = s.spend > 0 ? s.revenue / s.spend : 0
+      const ctr = s.impressions > 0 ? (s.clicks / s.impressions) * 100 : 0
+      const cpa = s.conversions > 0 ? s.spend / s.conversions : 0
+      const performance = roas >= 5 ? 'excellent' : roas >= 3 ? 'good' : 'needs attention'
+      return { ...c, ...s, roas, ctr, cpa, performance, color: COLORS[i % COLORS.length] }
+    }).sort((a, b) => b.roas - a.roas)
+  }, [campaigns, metrics])
 
-  // Calculate average budget utilization
-  const avgBudgetUtilization = campaignData.reduce((sum, c) => sum + c.budgetUtilization, 0) / campaignData.length
+  if (campLoading || metricsLoading) return <UnitPerformanceSkeleton />
+
+  const bestPerformer = campaignStats[0]
+  const worstPerformer = campaignStats[campaignStats.length - 1]
+  const activeCampaigns = campaignStats.filter(c => c.status === 'active')
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="pt-6">
@@ -73,15 +76,12 @@ export function UnitPerformance() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Top Campaign</p>
-                <p className="text-lg font-bold truncate max-w-[150px]">{bestPerformer.campaignName}</p>
-                <p className="text-sm text-green-600">
-                  ROAS: {bestPerformer.roas.toFixed(2)}x
-                </p>
+                <p className="text-lg font-bold truncate max-w-[150px]">{bestPerformer?.name || '—'}</p>
+                <p className="text-sm text-green-600">ROAS: {bestPerformer?.roas.toFixed(2)}x</p>
               </div>
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -90,15 +90,12 @@ export function UnitPerformance() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Needs Attention</p>
-                <p className="text-lg font-bold truncate max-w-[150px]">{worstPerformer.campaignName}</p>
-                <p className="text-sm text-red-600">
-                  ROAS: {worstPerformer.roas.toFixed(2)}x
-                </p>
+                <p className="text-lg font-bold truncate max-w-[150px]">{worstPerformer?.name || '—'}</p>
+                <p className="text-sm text-red-600">ROAS: {worstPerformer?.roas.toFixed(2)}x</p>
               </div>
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -106,50 +103,30 @@ export function UnitPerformance() {
                 <Target className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Avg Budget Used</p>
-                <p className="text-2xl font-bold">{avgBudgetUtilization.toFixed(1)}%</p>
-                <p className="text-sm text-muted-foreground">across {activeCampaigns.length} campaigns</p>
+                <p className="text-sm text-muted-foreground">Active Campaigns</p>
+                <p className="text-2xl font-bold">{activeCampaigns.length}</p>
+                <p className="text-sm text-muted-foreground">of {campaignStats.length} total</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* ROAS by Campaign Chart */}
       <Card>
-        <CardHeader>
-          <CardTitle>Campaign Performance (ROAS)</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Campaign ROAS Comparison</CardTitle></CardHeader>
         <CardContent>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={campaignData} layout="vertical">
+              <BarChart data={campaignStats} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis
-                  type="number"
-                  className="text-xs"
-                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  tickFormatter={(value) => `${value}x`}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="campaignName"
-                  className="text-xs"
-                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  width={120}
-                />
+                <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `${v}x`} />
+                <YAxis type="category" dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))' }} width={160} className="text-xs" />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                  }}
-                  formatter={(value) => [`${Number(value).toFixed(2)}x`, 'ROAS']}
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
+                  formatter={(v) => [`${Number(v).toFixed(2)}x`, 'ROAS']}
                 />
                 <Bar dataKey="roas" radius={[0, 4, 4, 0]}>
-                  {campaignData.map((entry) => (
-                    <Cell key={entry.campaignId} fill={getPlatformColor(entry.platform)} />
-                  ))}
+                  {campaignStats.map((c) => <Cell key={c.id} fill={c.color} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -157,17 +134,14 @@ export function UnitPerformance() {
         </CardContent>
       </Card>
 
-      {/* Detailed Campaign Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Campaign Details</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Campaign Details</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Campaign</TableHead>
-                <TableHead>Platform</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Spend</TableHead>
                 <TableHead className="text-right">Revenue</TableHead>
                 <TableHead className="text-right">ROAS</TableHead>
@@ -178,65 +152,27 @@ export function UnitPerformance() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {campaignData.map((campaign) => (
-                <TableRow key={campaign.campaignId}>
-                  <TableCell className="font-medium max-w-[200px] truncate">
-                    {campaign.campaignName}
-                  </TableCell>
+              {campaignStats.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell className="font-medium max-w-[180px] truncate">{c.name}</TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      style={{ borderColor: getPlatformColor(campaign.platform) }}
-                    >
-                      {getPlatformName(campaign.platform)}
+                    <Badge variant="outline" className={c.status === 'active' ? 'border-green-500 text-green-600' : 'border-yellow-500 text-yellow-600'}>
+                      {c.status}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-right">{formatCurrency(c.spend)}</TableCell>
+                  <TableCell className="text-right text-green-600 font-medium">{formatCurrency(c.revenue)}</TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(campaign.spend)}
-                  </TableCell>
-                  <TableCell className="text-right text-green-600 font-medium">
-                    {formatCurrency(campaign.revenue)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span
-                      className={
-                        campaign.roas >= 5
-                          ? 'text-green-600 font-semibold'
-                          : campaign.roas >= 3
-                          ? 'text-yellow-600'
-                          : 'text-red-600'
-                      }
-                    >
-                      {campaign.roas.toFixed(2)}x
+                    <span className={c.roas >= 5 ? 'text-green-600 font-semibold' : c.roas >= 3 ? 'text-yellow-600' : 'text-red-600'}>
+                      {c.roas.toFixed(2)}x
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">
-                    {campaign.conversions}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(campaign.cpa)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatPercentage(campaign.ctr)}
-                  </TableCell>
+                  <TableCell className="text-right">{c.conversions}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(c.cpa)}</TableCell>
+                  <TableCell className="text-right">{c.ctr.toFixed(2)}%</TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        campaign.performance === 'excellent'
-                          ? 'default'
-                          : campaign.performance === 'good'
-                          ? 'secondary'
-                          : 'outline'
-                      }
-                      className={
-                        campaign.performance === 'excellent'
-                          ? 'bg-green-500'
-                          : campaign.performance === 'good'
-                          ? 'bg-blue-500'
-                          : ''
-                      }
-                    >
-                      {campaign.performance}
+                    <Badge className={c.performance === 'excellent' ? 'bg-green-500' : c.performance === 'good' ? 'bg-blue-500' : 'bg-gray-400'}>
+                      {c.performance}
                     </Badge>
                   </TableCell>
                 </TableRow>

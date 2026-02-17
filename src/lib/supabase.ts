@@ -11,25 +11,20 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Helper function to set custom JWT from Clerk
-export const setSupabaseAuth = async (token: string) => {
-  const { data, error } = await supabase.auth.setSession({
-    access_token: token,
-    refresh_token: '', // Not needed when using custom JWT
+// Create an authenticated Supabase client using a Clerk token
+export function createAuthenticatedClient(token: string) {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
   });
+}
 
-  if (error) {
-    console.error('Error setting Supabase session:', error);
-    throw error;
-  }
-
-  return data;
+// Keep for backwards compatibility
+export const setSupabaseAuth = async (_token: string) => {
+  // No-op: use createAuthenticatedClient instead
 };

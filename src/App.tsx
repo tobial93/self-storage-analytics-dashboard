@@ -15,6 +15,7 @@ import { Settings } from '@/pages/Settings'
 import { SignIn } from '@/pages/auth/SignIn'
 import { SignUp } from '@/pages/auth/SignUp'
 import { CreateOrganization } from '@/pages/auth/CreateOrganization'
+import { OAuthCallback } from '@/pages/auth/OAuthCallback'
 
 // Get Clerk publishable key from environment
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -52,6 +53,7 @@ function App() {
                     <OrganizationProvider>
                       <Routes>
                         <Route path="/create-organization/*" element={<CreateOrganization />} />
+                        <Route path="/integrations/callback" element={<OAuthCallback />} />
                         <Route path="/" element={<DashboardLayout />}>
                           <Route index element={<ExecutiveOverview />} />
                           <Route path="units" element={<UnitPerformance />} />

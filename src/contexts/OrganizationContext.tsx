@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { useOrganization, useUser } from '@clerk/clerk-react';
+import { useOrganization, useUser, useAuth } from '@clerk/clerk-react';
+import { setSupabaseAuth } from '@/lib/supabase';
 
 interface OrganizationContextType {
   organizationId: string | null;
@@ -21,7 +22,26 @@ interface OrganizationProviderProps {
 export function OrganizationProvider({ children }: OrganizationProviderProps) {
   const { organization, isLoaded: orgLoaded, membership } = useOrganization();
   const { user, isLoaded: userLoaded } = useUser();
+  const { getToken } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+
+  // Sync Clerk authentication with Supabase
+  useEffect(() => {
+    const syncAuth = async () => {
+      if (user) {
+        try {
+          const token = await getToken({ template: 'supabase' });
+          if (token) {
+            await setSupabaseAuth(token);
+          }
+        } catch (error) {
+          console.error('Error syncing auth with Supabase:', error);
+        }
+      }
+    };
+
+    syncAuth();
+  }, [user, getToken]);
 
   useEffect(() => {
     if (orgLoaded && userLoaded) {

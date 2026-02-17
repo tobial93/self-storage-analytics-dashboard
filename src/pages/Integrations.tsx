@@ -1,6 +1,69 @@
-import { Cable, XCircle } from 'lucide-react'
+import { Cable, XCircle, CheckCircle2, RefreshCw, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { useCurrentOrganization } from '@/contexts/OrganizationContext'
+import { useAdConnections, useDisconnectAdAccount } from '@/hooks/useApiData'
+import { initiateGoogleAdsOAuth } from '@/services/googleAds'
+import { useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { formatDistanceToNow } from 'date-fns'
 
 export function Integrations() {
+  const { organizationId } = useCurrentOrganization()
+  const { data: connections, isLoading } = useAdConnections()
+  const disconnectMutation = useDisconnectAdAccount()
+  const queryClient = useQueryClient()
+  const [syncingId, setSyncingId] = useState<string | null>(null)
+  const [syncResult, setSyncResult] = useState<{ id: string; message: string; error?: boolean } | null>(null)
+
+  const handleConnectGoogleAds = () => {
+    if (!organizationId) {
+      alert('Please select an organization first')
+      return
+    }
+    initiateGoogleAdsOAuth(organizationId)
+  }
+
+  const handleDisconnect = async (connectionId: string) => {
+    if (confirm('Are you sure you want to disconnect this account?')) {
+      await disconnectMutation.mutateAsync(connectionId)
+    }
+  }
+
+  const handleSync = async (connectionId: string) => {
+    if (!organizationId) return
+    setSyncingId(connectionId)
+    setSyncResult(null)
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-google-ads', {
+        body: { org_id: organizationId },
+      })
+      if (error) {
+        // Extract actual error from response body
+        let detail = error.message
+        try {
+          const body = await error.context?.json()
+          detail = body?.error || detail
+        } catch {}
+        throw new Error(detail)
+      }
+      if (data?.error) throw new Error(data.error)
+      setSyncResult({
+        id: connectionId,
+        message: `Synced ${data.campaigns_synced} campaigns, ${data.metrics_synced} metric rows`,
+      })
+      queryClient.invalidateQueries({ queryKey: ['ad-connections', organizationId] })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Sync failed'
+      console.error('Sync error:', err)
+      setSyncResult({ id: connectionId, message, error: true })
+    } finally {
+      setSyncingId(null)
+    }
+  }
+
+  // Filter connections by platform
+  const googleAdsConnections = connections?.filter(c => c.platform === 'google_ads') || []
+
   return (
     <div className="space-y-6">
       <div>
@@ -9,6 +72,57 @@ export function Integrations() {
           Connect your advertising accounts to sync campaign data
         </p>
       </div>
+
+      {/* Connected Accounts Section */}
+      {!isLoading && googleAdsConnections.length > 0 && (
+        <div className="border rounded-lg p-6 bg-card">
+          <h3 className="font-semibold mb-4">Connected Accounts</h3>
+          <div className="space-y-3">
+            {googleAdsConnections.map((connection) => (
+              <div
+                key={connection.id}
+                className="flex items-center justify-between p-3 border rounded-md"
+              >
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="font-medium">
+                      {connection.account_name || 'Google Ads Account'}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {connection.last_synced_at
+                        ? `Last synced ${formatDistanceToNow(new Date(connection.last_synced_at))} ago`
+                        : 'Never synced'}
+                    </p>
+                    {syncResult?.id === connection.id && (
+                      <p className={`text-xs mt-1 ${syncResult.error ? 'text-red-500' : 'text-green-600'}`}>
+                        {syncResult.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleSync(connection.id)}
+                    disabled={syncingId === connection.id}
+                    className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors disabled:opacity-50"
+                    title="Sync now"
+                  >
+                    <RefreshCw className={`h-4 w-4 text-blue-600 ${syncingId === connection.id ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button
+                    onClick={() => handleDisconnect(connection.id)}
+                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                    title="Disconnect"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Integration Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -21,19 +135,28 @@ export function Integrations() {
               </div>
               <div>
                 <h3 className="font-semibold">Google Ads</h3>
-                <p className="text-sm text-muted-foreground">Coming in Phase 3</p>
+                <p className="text-sm text-muted-foreground">
+                  {googleAdsConnections.length > 0
+                    ? `${googleAdsConnections.length} account(s) connected`
+                    : 'Not connected'}
+                </p>
               </div>
             </div>
-            <XCircle className="h-5 w-5 text-muted-foreground" />
+            {googleAdsConnections.length > 0 ? (
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            ) : (
+              <XCircle className="h-5 w-5 text-muted-foreground" />
+            )}
           </div>
           <p className="text-sm text-muted-foreground mb-4">
             Connect your Google Ads account to sync campaigns, ad groups, and performance metrics
           </p>
           <button
-            disabled
-            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md opacity-50 cursor-not-allowed"
+            onClick={handleConnectGoogleAds}
+            disabled={!organizationId}
+            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Connect Google Ads
+            {googleAdsConnections.length > 0 ? 'Add Another Account' : 'Connect Google Ads'}
           </button>
         </div>
 
@@ -117,9 +240,11 @@ export function Integrations() {
       <div className="border rounded-lg p-6 bg-muted/30">
         <h3 className="font-semibold mb-2">About Integrations</h3>
         <p className="text-sm text-muted-foreground">
-          Integration pages will be implemented in future phases. Once connected, your ad platform
-          data will sync automatically every hour, and you'll see real-time updates in your
-          dashboard.
+          Once connected, your ad platform data will sync automatically. You can manage connected
+          accounts above and view campaign data in the dashboard.
+        </p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Click the <strong>sync icon</strong> next to a connected account to fetch the latest campaign data.
         </p>
       </div>
     </div>
