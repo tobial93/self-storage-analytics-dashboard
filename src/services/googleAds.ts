@@ -40,7 +40,7 @@ export function initiateGoogleAdsOAuth(orgId: string): void {
     scope: GOOGLE_ADS_SCOPE,
     access_type: 'offline', // Get refresh token
     prompt: 'consent', // Force consent screen to get refresh token
-    state: orgId, // Pass org ID through OAuth flow
+    state: `${orgId}:google_ads`, // "orgId:platform" format for OAuthCallback routing
   });
 
   const authUrl = `${GOOGLE_ADS_AUTH_URL}?${params.toString()}`;

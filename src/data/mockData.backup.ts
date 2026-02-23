@@ -405,7 +405,7 @@ export const getPlatformColor = (platform: PlatformType): string => {
     facebook_ads: '#1877F2',
     instagram_ads: '#E4405F',
     linkedin_ads: '#0A66C2',
-    tiktok_ads: '#000000',
+    ga4: '#E37400',
   }
   return colors[platform]
 }
@@ -417,7 +417,7 @@ export const getPlatformName = (platform: PlatformType): string => {
     facebook_ads: 'Facebook Ads',
     instagram_ads: 'Instagram Ads',
     linkedin_ads: 'LinkedIn Ads',
-    tiktok_ads: 'TikTok Ads',
+    ga4: 'Google Analytics 4',
   }
   return names[platform]
 }

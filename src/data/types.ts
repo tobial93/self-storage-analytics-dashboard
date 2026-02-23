@@ -1,4 +1,4 @@
-export type PlatformType = 'google_ads' | 'facebook_ads' | 'instagram_ads' | 'linkedin_ads' | 'tiktok_ads'
+export type PlatformType = 'google_ads' | 'facebook_ads' | 'instagram_ads' | 'linkedin_ads' | 'ga4'
 
 export interface Campaign {
   id: string
