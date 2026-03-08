@@ -3,6 +3,8 @@ import type {
   Campaign,
   DailyMetrics,
   PerformanceAlert,
+  SyncSchedule,
+  SyncFrequency,
 } from '@/data/types'
 
 // ============================================================
@@ -326,6 +328,82 @@ export async function updateOrganizationBranding(
 
   if (error) {
     console.error('Error updating branding:', error)
+    throw error
+  }
+
+  return data
+}
+
+// ============================================================
+// ONBOARDING
+// ============================================================
+
+export async function markOnboardingComplete(orgId: string): Promise<void> {
+  const { error } = await supabase
+    .from('organizations')
+    .update({ onboarding_completed: true })
+    .eq('id', orgId)
+
+  if (error) {
+    console.error('Error marking onboarding complete:', error)
+    throw error
+  }
+}
+
+// ============================================================
+// SYNC SCHEDULES
+// ============================================================
+
+function computeNextRunAt(frequency: SyncFrequency): string {
+  const now = new Date()
+  if (frequency === 'hourly') {
+    now.setHours(now.getHours() + 1)
+  } else if (frequency === 'every_6h') {
+    now.setHours(now.getHours() + 6)
+  } else {
+    now.setHours(now.getHours() + 24)
+  }
+  return now.toISOString()
+}
+
+export async function getSyncSchedules(orgId: string): Promise<SyncSchedule[]> {
+  const { data, error } = await supabase
+    .from('sync_schedules')
+    .select('*')
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching sync schedules:', error)
+    throw error
+  }
+
+  return data || []
+}
+
+export async function upsertSyncSchedule(
+  orgId: string,
+  platform: string,
+  frequency: SyncFrequency,
+  isEnabled: boolean
+): Promise<SyncSchedule> {
+  const { data, error } = await supabase
+    .from('sync_schedules')
+    .upsert(
+      {
+        org_id: orgId,
+        platform,
+        frequency,
+        is_enabled: isEnabled,
+        next_run_at: computeNextRunAt(frequency),
+      },
+      { onConflict: 'org_id,platform' }
+    )
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error upserting sync schedule:', error)
     throw error
   }
 

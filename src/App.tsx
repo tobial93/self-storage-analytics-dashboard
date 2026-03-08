@@ -1,11 +1,12 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { ClerkProvider } from '@clerk/clerk-react'
+import { ClerkProvider, SignedIn, SignedOut } from '@clerk/clerk-react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { OrganizationProvider } from '@/contexts/OrganizationContext'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ExecutiveOverview } from '@/pages/ExecutiveOverview'
 import { UnitPerformance } from '@/pages/UnitPerformance'
 import { CustomerAnalytics } from '@/pages/CustomerAnalytics'
@@ -16,6 +17,8 @@ import { SignIn } from '@/pages/auth/SignIn'
 import { SignUp } from '@/pages/auth/SignUp'
 import { CreateOrganization } from '@/pages/auth/CreateOrganization'
 import { OAuthCallback } from '@/pages/auth/OAuthCallback'
+import { Onboarding } from '@/pages/Onboarding'
+import { Landing } from '@/pages/Landing'
 
 // Get Clerk publishable key from environment
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -39,36 +42,58 @@ function App() {
     <ClerkProvider publishableKey={clerkPubKey}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <BrowserRouter>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/sign-in/*" element={<SignIn />} />
-              <Route path="/sign-up/*" element={<SignUp />} />
+          <ErrorBoundary>
+            <BrowserRouter>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/sign-in/*" element={<SignIn />} />
+                <Route path="/sign-up/*" element={<SignUp />} />
 
-              {/* Protected routes */}
-              <Route
-                path="/*"
-                element={
-                  <ProtectedRoute>
-                    <OrganizationProvider>
-                      <Routes>
-                        <Route path="/create-organization/*" element={<CreateOrganization />} />
-                        <Route path="/integrations/callback" element={<OAuthCallback />} />
-                        <Route path="/" element={<DashboardLayout />}>
-                          <Route index element={<ExecutiveOverview />} />
-                          <Route path="units" element={<UnitPerformance />} />
-                          <Route path="customers" element={<CustomerAnalytics />} />
-                          <Route path="forecast" element={<Forecast />} />
-                          <Route path="integrations" element={<Integrations />} />
-                          <Route path="settings" element={<Settings />} />
-                        </Route>
-                      </Routes>
-                    </OrganizationProvider>
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </BrowserRouter>
+                {/* Landing page — show to signed-out users at root */}
+                <Route
+                  path="/"
+                  element={
+                    <>
+                      <SignedOut>
+                        <Landing />
+                      </SignedOut>
+                      <SignedIn>
+                        <ProtectedRoute>
+                          <OrganizationProvider>
+                            <DashboardLayout />
+                          </OrganizationProvider>
+                        </ProtectedRoute>
+                      </SignedIn>
+                    </>
+                  }
+                />
+
+                {/* Protected routes */}
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <OrganizationProvider>
+                        <Routes>
+                          <Route path="/create-organization/*" element={<CreateOrganization />} />
+                          <Route path="/integrations/callback" element={<OAuthCallback />} />
+                          <Route path="/onboarding" element={<Onboarding />} />
+                          <Route path="/" element={<DashboardLayout />}>
+                            <Route index element={<ExecutiveOverview />} />
+                            <Route path="units" element={<UnitPerformance />} />
+                            <Route path="customers" element={<CustomerAnalytics />} />
+                            <Route path="forecast" element={<Forecast />} />
+                            <Route path="integrations" element={<Integrations />} />
+                            <Route path="settings" element={<Settings />} />
+                          </Route>
+                        </Routes>
+                      </OrganizationProvider>
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </BrowserRouter>
+          </ErrorBoundary>
         </ThemeProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>

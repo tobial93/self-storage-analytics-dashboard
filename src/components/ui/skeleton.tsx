@@ -16,7 +16,7 @@ function Skeleton({ className, ...props }: SkeletonProps) {
 
 function SkeletonCard() {
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="rounded-lg border border-border bg-card p-6">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <Skeleton className="h-4 w-24" />
@@ -31,7 +31,7 @@ function SkeletonCard() {
 
 function SkeletonChart({ height = 300 }: { height?: number }) {
   return (
-    <div className="rounded-xl border border-border bg-card">
+    <div className="rounded-lg border border-border bg-card">
       <div className="p-6 pb-2">
         <Skeleton className="h-6 w-48" />
       </div>
@@ -52,7 +52,7 @@ function SkeletonChart({ height = 300 }: { height?: number }) {
 
 function SkeletonTable({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="rounded-xl border border-border bg-card">
+    <div className="rounded-lg border border-border bg-card">
       <div className="p-6 pb-2">
         <Skeleton className="h-6 w-48" />
       </div>
@@ -80,7 +80,7 @@ function SkeletonTable({ rows = 5 }: { rows?: number }) {
 
 function SkeletonPieChart() {
   return (
-    <div className="rounded-xl border border-border bg-card">
+    <div className="rounded-lg border border-border bg-card">
       <div className="p-6 pb-2">
         <Skeleton className="h-6 w-48" />
       </div>

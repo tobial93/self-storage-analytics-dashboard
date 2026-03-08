@@ -36,7 +36,6 @@ export function Forecast() {
 
   const { data: metrics, isLoading } = useMetricsByDateRange(startDate, endDate)
 
-  // Group metrics by date
   const dailyData = useMemo(() => {
     if (!metrics) return []
     const byDate: Record<string, { date: string; revenue: number; spend: number; conversions: number }> = {}
@@ -51,7 +50,6 @@ export function Forecast() {
     return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date))
   }, [metrics])
 
-  // Simple linear forecast for next 14 days based on last 7 days average
   const forecastData = useMemo(() => {
     if (dailyData.length < 7) return []
     const last7 = dailyData.slice(-7)
@@ -85,7 +83,6 @@ export function Forecast() {
     return [...historical, ...forecasted]
   }, [dailyData])
 
-  // Weekly ROAS trend
   const roasTrend = useMemo(() => {
     if (dailyData.length === 0) return []
     const weeks: { week: string; roas: number; revenue: number; spend: number }[] = []
@@ -105,6 +102,16 @@ export function Forecast() {
 
   if (isLoading) return <ForecastSkeleton />
 
+  if (!metrics?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <TrendingUp className="h-8 w-8 text-muted-foreground mb-3" />
+        <p className="text-sm font-medium">No data to forecast</p>
+        <p className="text-sm text-muted-foreground mt-1">Sync at least 7 days of campaign data to generate forecasts.</p>
+      </div>
+    )
+  }
+
   const totalRevenue = dailyData.reduce((s, d) => s + d.revenue, 0)
   const totalSpend = dailyData.reduce((s, d) => s + d.spend, 0)
   const avgRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0
@@ -113,12 +120,11 @@ export function Forecast() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3">
-        <KPICard title="14-Day Revenue Forecast" value={formatCurrency(forecastedRevenue)} change={0} changeLabel="next 14 days" icon={TrendingUp} iconColor="text-blue-500" />
-        <KPICard title="Avg ROAS (30 days)" value={`${avgRoas.toFixed(2)}x`} change={0} changeLabel="actual" icon={DollarSign} iconColor="text-green-500" />
-        <KPICard title="Total Ad Spend" value={formatCurrency(totalSpend)} change={0} changeLabel="last 30 days" icon={Calendar} iconColor="text-purple-500" />
+        <KPICard title="14-Day Revenue Forecast" value={formatCurrency(forecastedRevenue)} change={0} changeLabel="next 14 days" icon={TrendingUp} iconColor="text-muted-foreground" />
+        <KPICard title="Avg ROAS (30 days)" value={`${avgRoas.toFixed(2)}x`} change={0} changeLabel="actual" icon={DollarSign} iconColor="text-muted-foreground" />
+        <KPICard title="Total Ad Spend" value={formatCurrency(totalSpend)} change={0} changeLabel="last 30 days" icon={Calendar} iconColor="text-muted-foreground" />
       </div>
 
-      {/* Revenue Forecast Chart */}
       <Card>
         <CardHeader><CardTitle>Revenue Forecast (Actual + Next 14 Days)</CardTitle></CardHeader>
         <CardContent>
@@ -127,33 +133,32 @@ export function Forecast() {
               <AreaChart data={forecastData}>
                 <defs>
                   <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#00a3cc" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#00a3cc" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#00d4aa" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#00d4aa" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))' }} className="text-xs" interval={4} />
                 <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} className="text-xs" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
                   formatter={(v) => formatCurrency(Number(v))}
                 />
                 <Legend />
-                <Area type="monotone" dataKey="actual" name="Actual Revenue" stroke="#3b82f6" strokeWidth={2} fill="url(#colorActual)" connectNulls />
-                <Area type="monotone" dataKey="forecast" name="Forecast" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" fill="url(#colorForecast)" connectNulls />
-                <Area type="monotone" dataKey="upperBound" name="Upper Bound" stroke="#f59e0b" strokeWidth={1} strokeOpacity={0.5} fill="transparent" connectNulls />
-                <Area type="monotone" dataKey="lowerBound" name="Lower Bound" stroke="#f59e0b" strokeWidth={1} strokeOpacity={0.5} fill="transparent" connectNulls />
+                <Area type="monotone" dataKey="actual" name="Actual Revenue" stroke="#00a3cc" strokeWidth={2} fill="url(#colorActual)" connectNulls />
+                <Area type="monotone" dataKey="forecast" name="Forecast" stroke="#00d4aa" strokeWidth={2} strokeDasharray="5 5" fill="url(#colorForecast)" connectNulls />
+                <Area type="monotone" dataKey="upperBound" name="Upper Bound" stroke="#f5a623" strokeWidth={1} strokeOpacity={0.5} fill="transparent" connectNulls />
+                <Area type="monotone" dataKey="lowerBound" name="Lower Bound" stroke="#f5a623" strokeWidth={1} strokeOpacity={0.5} fill="transparent" connectNulls />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
 
-      {/* Weekly ROAS Trend */}
       <Card>
         <CardHeader><CardTitle>Weekly ROAS Trend</CardTitle></CardHeader>
         <CardContent>
@@ -164,7 +169,7 @@ export function Forecast() {
                 <XAxis dataKey="week" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
                 <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `${v}x`} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
                   formatter={(v, name) => name === 'ROAS' ? [`${Number(v).toFixed(2)}x`, name] : [formatCurrency(Number(v)), name]}
                 />
                 <Legend />
@@ -175,37 +180,22 @@ export function Forecast() {
         </CardContent>
       </Card>
 
-      {/* Insights */}
+      {/* Insights — simple text list, no decorative boxes */}
       <Card>
         <CardHeader><CardTitle>Forecast Insights</CardTitle></CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20">
-              <TrendingUp className="h-5 w-5 text-blue-600 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-blue-900 dark:text-blue-100">14-Day Projection</h4>
-                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                  Based on your last 7 days of performance, we forecast {formatCurrency(forecastedRevenue)} in revenue over the next 14 days with a ±15% confidence range.
-                </p>
-              </div>
+          <div className="space-y-3 text-sm">
+            <div className="flex items-start gap-2">
+              <span className="text-muted-foreground shrink-0">1.</span>
+              <p>Based on the last 7 days, projected revenue is {formatCurrency(forecastedRevenue)} over the next 14 days (±15% confidence).</p>
             </div>
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-green-50 dark:bg-green-950/20">
-              <DollarSign className="h-5 w-5 text-green-600 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-green-900 dark:text-green-100">ROAS Performance</h4>
-                <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                  Your average ROAS of {avgRoas.toFixed(2)}x over the last 30 days indicates {avgRoas >= 4 ? 'strong' : avgRoas >= 2.5 ? 'healthy' : 'below-average'} campaign efficiency.
-                </p>
-              </div>
+            <div className="flex items-start gap-2">
+              <span className="text-muted-foreground shrink-0">2.</span>
+              <p>Average ROAS of {avgRoas.toFixed(2)}x indicates {avgRoas >= 4 ? 'strong' : avgRoas >= 2.5 ? 'healthy' : 'below-average'} campaign efficiency.</p>
             </div>
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20">
-              <Calendar className="h-5 w-5 text-purple-600 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-purple-900 dark:text-purple-100">Next Step</h4>
-                <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">
-                  Connect your Google Ads account with real campaigns to get more accurate forecasting based on historical seasonal trends.
-                </p>
-              </div>
+            <div className="flex items-start gap-2">
+              <span className="text-muted-foreground shrink-0">3.</span>
+              <p>Connect additional ad platforms for more accurate forecasting based on historical seasonal trends.</p>
             </div>
           </div>
         </CardContent>

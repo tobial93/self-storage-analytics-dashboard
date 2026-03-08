@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useOrganization, useUser, useAuth } from '@clerk/clerk-react';
-import { setSupabaseAuth } from '@/lib/supabase';
+import { setSupabaseAuth, supabase } from '@/lib/supabase';
+import type { SubscriptionTier } from '@/data/types';
 
 interface OrganizationContextType {
   organizationId: string | null;
@@ -9,6 +10,9 @@ interface OrganizationContextType {
   organizationSlug: string | null;
   isLoading: boolean;
   userRole: 'admin' | 'manager' | 'viewer' | null;
+  subscriptionTier: SubscriptionTier | null;
+  onboardingCompleted: boolean | null;  // null = still loading from DB
+  refetchOrgData: () => void;
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(
@@ -24,6 +28,8 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
   const { user, isLoaded: userLoaded } = useUser();
   const { getToken } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier | null>(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
 
   // Sync Clerk authentication with Supabase
   useEffect(() => {
@@ -49,6 +55,44 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
     }
   }, [orgLoaded, userLoaded]);
 
+  const fetchOrgData = useCallback(async (orgId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('subscription_tier, onboarding_completed')
+        .eq('id', orgId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching org data:', error);
+        return;
+      }
+
+      if (data) {
+        setSubscriptionTier((data.subscription_tier as SubscriptionTier) || 'free');
+        setOnboardingCompleted(data.onboarding_completed ?? false);
+      }
+    } catch (error) {
+      console.error('Error fetching org data:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (organization?.id) {
+      fetchOrgData(organization.id);
+    } else if (orgLoaded && !organization) {
+      // No org, reset
+      setSubscriptionTier(null);
+      setOnboardingCompleted(null);
+    }
+  }, [organization?.id, orgLoaded, fetchOrgData]);
+
+  const refetchOrgData = useCallback(() => {
+    if (organization?.id) {
+      fetchOrgData(organization.id);
+    }
+  }, [organization?.id, fetchOrgData]);
+
   // Get user's role in the organization
   const getUserRole = (): 'admin' | 'manager' | 'viewer' | null => {
     if (!organization || !user) return null;
@@ -69,6 +113,9 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
     organizationSlug: organization?.slug || null,
     isLoading,
     userRole: getUserRole(),
+    subscriptionTier,
+    onboardingCompleted,
+    refetchOrgData,
   };
 
   return (

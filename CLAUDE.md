@@ -14,18 +14,29 @@ npm run start      # Serve dist/ with `serve` (used by Railway in production)
 
 There are no tests in this project.
 
-**TypeScript is strict** — `noUnusedLocals`, `noUnusedParameters`, and `erasableSyntaxOnly` are all enabled. Prefix intentionally unused parameters with `_` (e.g., `_accessToken`).
+**TypeScript is strict** — `noUnusedLocals`, `noUnusedParameters`, and `erasableSyntaxOnly` are all enabled. Prefix intentionally unused parameters with `_` (e.g., `_accessToken`). Always use `import type` for type-only imports.
+
+### Supabase Edge Function Deployment
+
+```bash
+npx supabase functions deploy {function-name}
+
+# stripe-webhook MUST be deployed with JWT verification disabled:
+npx supabase functions deploy stripe-webhook --no-verify-jwt
+```
+
+The project has no `supabase/config.toml` (not linked via CLI). Use `npx supabase link --project-ref kvaespkemcsvguchfjxt` first, or run migrations manually in the Supabase SQL editor.
 
 ## Architecture Overview
 
-This is a **multi-tenant SaaS marketing analytics dashboard** for self-storage businesses. It aggregates ad platform data (Google Ads, Facebook Ads, etc.) per organization.
+This is a **multi-tenant SaaS marketing analytics dashboard** for self-storage businesses. It aggregates ad platform data (Google Ads, Facebook Ads, GA4, LinkedIn) per organization, with Stripe subscription billing and a guided onboarding flow.
 
 ### Auth & Multi-Tenancy
 
 - **Clerk** handles authentication and organizations. The Clerk organization ID is used as `org_id` throughout the database.
-- **Supabase** stores all app data. Row-Level Security (RLS) enforces tenant isolation via `public.get_user_org_id()`, a SQL function that looks up `org_id` from the `users` table by matching `clerk_user_id = auth.jwt()->>'sub'`.
-- To make authenticated Supabase calls from the frontend (respecting RLS), use `createAuthenticatedClient(clerkToken)` from `src/lib/supabase.ts`. The plain `supabase` client uses the anon key; it works for RLS because Clerk tokens are passed as the Authorization header.
-- Supabase Edge Functions bypass RLS using `SUPABASE_SERVICE_ROLE_KEY` (admin client).
+- **Supabase** stores all app data. RLS enforces tenant isolation via `public.current_user_org_id()` — a `SECURITY DEFINER` SQL function that looks up `org_id` from the `users` table by matching `clerk_user_id = auth.jwt()->>'sub'`.
+- The plain `supabase` client (anon key, `src/lib/supabase.ts`) is used for nearly all frontend queries — RLS is enforced via the Clerk JWT passed in the Authorization header. Use `createAuthenticatedClient(clerkToken)` only when you need to explicitly pass a fresh Clerk token (e.g., OAuth token exchange flows). `setSupabaseAuth` is a no-op stub kept for compatibility.
+- Edge Functions bypass RLS using `SUPABASE_SERVICE_ROLE_KEY` (admin client).
 
 ### Frontend Stack
 
@@ -34,14 +45,16 @@ This is a **multi-tenant SaaS marketing analytics dashboard** for self-storage b
 - **React Query** (`@tanstack/react-query`) for all data fetching — hooks live in `src/hooks/useApiData.ts`, which call functions in `src/services/api.ts`
 - **Tailwind CSS v4** (via `@tailwindcss/vite` plugin — no `tailwind.config.js` needed)
 - **Shadcn/ui** for reusable UI primitives (`src/components/ui/`)
-- **Recharts** for charts, **@react-pdf/renderer** for PDF export, **lucide-react** for icons
+- **Recharts** for charts, **@react-pdf/renderer** for PDF export, **lucide-react** for icons, **date-fns** for date formatting
 
 ### State Management
 
 - **Auth**: Clerk (global)
-- **Organization context**: `src/contexts/OrganizationContext.tsx` — provides `organizationId`, `organizationName`, `userRole`, and `isLoading`. Consumed via `useCurrentOrganization()`. Also exports `useHasPermission(role)` for role-gated UI. Roles map from Clerk (`org:admin`, `org:member`) to app roles (`admin`, `manager`, `viewer`).
+- **Organization context**: `src/contexts/OrganizationContext.tsx` — provides `organizationId`, `organizationName`, `organizationSlug`, `userRole`, `isLoading`, `subscriptionTier`, `onboardingCompleted`, and `refetchOrgData`. Consumed via `useCurrentOrganization()`. `useHasPermission(role)` for role-gated UI. Roles map from Clerk (`org:admin`, `org:member`) to app roles (`admin`, `manager`, `viewer`).
+  - `onboardingCompleted === null` means still loading from DB. `=== false` means redirect to `/onboarding`. Use strict equality — `!onboardingCompleted` is wrong because null is also falsy.
 - **Theme**: `src/contexts/ThemeContext.tsx` — light/dark toggle
 - **Server data**: React Query (30-second stale time, 1 retry, refetch on window focus). Alerts additionally refetch every 60 seconds.
+- **No toast library** — use inline `useState` for loading/error/success feedback throughout.
 
 ### Data Flow
 
@@ -53,7 +66,7 @@ Supabase DB (campaigns + campaign_daily_metrics)
 Dashboard pages
 ```
 
-Pages in `src/pages/` consume React Query hooks. The hooks call `src/services/api.ts`, which queries Supabase tables filtered by `org_id`. All TypeScript interfaces are defined in `src/data/types.ts`.
+Pages in `src/pages/` consume React Query hooks. The hooks call `src/services/api.ts`, which queries Supabase tables filtered by `org_id`. All TypeScript interfaces are in `src/data/types.ts`.
 
 ### React Query Hook Pattern
 
@@ -79,20 +92,23 @@ onSuccess: () => queryClient.invalidateQueries({ queryKey: ['active-alerts', org
 /sign-in, /sign-up          → Public (Clerk hosted UI)
 /create-organization        → Protected, no org required
 /integrations/callback      → OAuth redirect handler (OAuthCallback.tsx)
-/                           → DashboardLayout shell
+/onboarding                 → 4-step onboarding wizard (outside DashboardLayout)
+/                           → DashboardLayout shell (redirects to /onboarding if not completed)
   /                         → ExecutiveOverview (KPIs + charts)
   /units                    → UnitPerformance (campaign table)
   /customers                → CustomerAnalytics (conversion funnel)
   /forecast                 → Forecast (predictive analytics)
   /integrations             → Integrations (connect/sync ad accounts)
-  /settings                 → Settings (org branding, preferences)
+  /settings                 → Settings (billing, sync scheduling, branding)
 ```
+
+`/onboarding` must remain **outside** `DashboardLayout` in `App.tsx` to prevent a redirect loop.
 
 ### Database Schema (key tables)
 
 | Table | Purpose |
 |---|---|
-| `organizations` | Tenants; `id` = Clerk org ID |
+| `organizations` | Tenants; `id` = Clerk org ID; has `stripe_customer_id`, `stripe_subscription_id`, `subscription_tier` CHECK(`free`\|`starter`\|`professional`\|`agency`), `onboarding_completed` |
 | `users` | Maps `clerk_user_id` → `org_id` |
 | `ad_account_connections` | OAuth tokens per platform per org |
 | `campaigns` | Synced campaigns; unique on `(org_id, platform, external_id)` |
@@ -100,6 +116,7 @@ onSuccess: () => queryClient.invalidateQueries({ queryKey: ['active-alerts', org
 | `performance_alerts` | Auto-generated alerts |
 | `conversion_events` | Funnel event tracking |
 | `organization_branding` | White-label settings |
+| `sync_schedules` | Per-org, per-platform sync frequency; unique on `(org_id, platform)`; `frequency` CHECK(`hourly`\|`every_6h`\|`daily`) |
 
 `platform` column is constrained to: `google_ads`, `facebook_ads`, `instagram_ads`, `linkedin_ads`, `ga4`.
 
@@ -112,22 +129,36 @@ Each integration follows this pattern:
 3. **`supabase/functions/sync-{platform}/index.ts`** — Deno edge function; refreshes token, fetches campaigns/metrics from the platform API, upserts into `campaigns` and `campaign_daily_metrics`
 4. **`src/pages/Integrations.tsx`** — shows connected accounts and triggers sync via `supabase.functions.invoke('sync-{platform}', ...)`
 
-Currently implemented: **Google Ads** (OAuth complete, sync via edge function).
+Implemented: **Google Ads** (OAuth + edge function), **Facebook Ads** (mock/demo data), **GA4** (OAuth + edge function), **LinkedIn Ads** (OAuth + edge function).
 
 ### Supabase Edge Functions
 
-- Located in `supabase/functions/`
-- Written in **Deno TypeScript** (import from `https://esm.sh/`)
-- Use `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` env vars (set in Supabase dashboard)
-- Platform API credentials are also set as Supabase secrets (not `VITE_` prefixed)
-- Deploy with: `supabase functions deploy {function-name}`
+Located in `supabase/functions/`. Written in **Deno TypeScript** (import from `https://esm.sh/`). Use `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` env vars.
+
+| Function | Purpose | Notes |
+|---|---|---|
+| `sync-google-ads` | Sync Google Ads campaigns/metrics | |
+| `sync-ga4` | Sync GA4 conversion events | |
+| `sync-linkedin` | Sync LinkedIn Ads campaigns | |
+| `create-checkout-session` | Create Stripe Checkout session | |
+| `create-billing-portal` | Open Stripe Customer Portal | |
+| `stripe-webhook` | Handle Stripe subscription events → update `subscription_tier` | Deploy with `--no-verify-jwt` |
+| `scheduled-sync` | Hourly cron + HTTP; runs due `sync_schedules` rows | `Deno.cron('0 * * * *', ...)` |
+
+### Stripe Billing
+
+- Tiers: `free` (default), `starter` ($49), `professional` ($99), `agency` ($249)
+- Frontend triggers `create-checkout-session` edge function → redirects `window.location.href = url`
+- Webhook maps price IDs to tiers via env vars `STRIPE_PRICE_STARTER/PROFESSIONAL/AGENCY`
+- `stripe-webhook` **must** be deployed with `--no-verify-jwt` (Stripe sends its own signature, not a Clerk JWT)
+- Billing status communicated via `?billing=success|cancelled` query params (no toast library)
 
 ### Deployment
 
 - **Frontend**: Railway — runs `npm run build` then `npm run start` (serves `dist/` with `serve`)
-- **Database + Edge Functions**: Supabase
+- **Database + Edge Functions**: Supabase (project ref: `kvaespkemcsvguchfjxt`)
 - Production URL: `https://self-storage-analytics-dashboard-production.up.railway.app`
-- Environment variables are prefixed `VITE_` for frontend access; Edge Functions use unprefixed secrets
+- Frontend env vars are prefixed `VITE_`; Edge Function secrets are unprefixed (set via `supabase secrets set`)
 
 ## Environment Variables
 
@@ -141,8 +172,19 @@ VITE_GOOGLE_ADS_CLIENT_ID=
 VITE_GOOGLE_ADS_CLIENT_SECRET=
 VITE_GOOGLE_ADS_DEVELOPER_TOKEN=
 VITE_GOOGLE_ADS_REDIRECT_URI=http://localhost:5175/integrations/callback
-# Facebook (Phase 4):
-VITE_FACEBOOK_ADS_APP_ID=
-VITE_FACEBOOK_ADS_APP_SECRET=
-VITE_FACEBOOK_ADS_REDIRECT_URI=http://localhost:5175/integrations/callback
+VITE_STRIPE_PUBLISHABLE_KEY=
+VITE_STRIPE_PRICE_STARTER=
+VITE_STRIPE_PRICE_PROFESSIONAL=
+VITE_STRIPE_PRICE_AGENCY=
+```
+
+Required Supabase secrets (set via `supabase secrets set`):
+
+```bash
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_STARTER=
+STRIPE_PRICE_PROFESSIONAL=
+STRIPE_PRICE_AGENCY=
+FRONTEND_URL=https://self-storage-analytics-dashboard-production.up.railway.app
 ```

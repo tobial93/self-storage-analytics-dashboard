@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(where supabase:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(xargs basename:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

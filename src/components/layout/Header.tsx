@@ -13,7 +13,7 @@ export function Header({ onMenuClick, title }: HeaderProps) {
   const { toggleTheme } = useTheme()
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b border-border bg-background px-4 lg:px-6">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
@@ -45,10 +45,9 @@ export function Header({ onMenuClick, title }: HeaderProps) {
           variant="ghost"
           size="icon"
           onClick={toggleTheme}
-          className="relative"
         >
-          <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <Sun className="h-5 w-5 hidden dark:block" />
+          <Moon className="h-5 w-5 block dark:hidden" />
           <span className="sr-only">Toggle theme</span>
         </Button>
 

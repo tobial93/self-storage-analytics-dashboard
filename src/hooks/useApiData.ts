@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCurrentOrganization } from '@/contexts/OrganizationContext'
 import * as api from '@/services/api'
+import type { SyncFrequency } from '@/data/types'
 
 // ============================================================
 // CAMPAIGNS
@@ -164,6 +165,55 @@ export function useUpdateBranding() {
     }) => api.updateOrganizationBranding(organizationId!, branding),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branding', organizationId] })
+    },
+  })
+}
+
+// ============================================================
+// ONBOARDING
+// ============================================================
+
+export function useMarkOnboardingComplete() {
+  const { organizationId, refetchOrgData } = useCurrentOrganization()
+
+  return useMutation({
+    mutationFn: () => api.markOnboardingComplete(organizationId!),
+    onSuccess: () => {
+      refetchOrgData()
+    },
+  })
+}
+
+// ============================================================
+// SYNC SCHEDULES
+// ============================================================
+
+export function useSyncSchedules() {
+  const { organizationId } = useCurrentOrganization()
+
+  return useQuery({
+    queryKey: ['sync-schedules', organizationId],
+    queryFn: () => api.getSyncSchedules(organizationId!),
+    enabled: !!organizationId,
+  })
+}
+
+export function useUpsertSyncSchedule() {
+  const queryClient = useQueryClient()
+  const { organizationId } = useCurrentOrganization()
+
+  return useMutation({
+    mutationFn: ({
+      platform,
+      frequency,
+      isEnabled,
+    }: {
+      platform: string
+      frequency: SyncFrequency
+      isEnabled: boolean
+    }) => api.upsertSyncSchedule(organizationId!, platform, frequency, isEnabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sync-schedules', organizationId] })
     },
   })
 }

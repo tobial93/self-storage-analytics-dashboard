@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
+import { useCurrentOrganization } from '@/contexts/OrganizationContext'
 
 const pageTitles: Record<string, string> = {
   '/': 'Executive Overview',
@@ -13,7 +14,16 @@ const pageTitles: Record<string, string> = {
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
   const title = pageTitles[location.pathname] || 'Dashboard'
+  const { onboardingCompleted, isLoading } = useCurrentOrganization()
+
+  useEffect(() => {
+    // Only redirect when fully loaded and onboarding is definitively false (not null)
+    if (!isLoading && onboardingCompleted === false) {
+      navigate('/onboarding', { replace: true })
+    }
+  }, [isLoading, onboardingCompleted, navigate])
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

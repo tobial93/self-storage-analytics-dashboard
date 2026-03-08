@@ -9,7 +9,7 @@ interface KPICardProps {
   changeLabel?: string
   icon: LucideIcon
   iconColor?: string
-  invertChange?: boolean // For metrics where decrease is good (e.g., CPA)
+  invertChange?: boolean
 }
 
 export function KPICard({
@@ -18,7 +18,7 @@ export function KPICard({
   change,
   changeLabel,
   icon: Icon,
-  iconColor = 'text-primary',
+  iconColor = 'text-muted-foreground',
   invertChange = false,
 }: KPICardProps) {
   const isPositive = invertChange ? (change && change < 0) : (change && change > 0)
@@ -26,16 +26,16 @@ export function KPICard({
 
   return (
     <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold">{value}</p>
+            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="text-2xl font-semibold">{value}</p>
             {change !== undefined && (
               <div className="flex items-center gap-1">
                 <span
                   className={cn(
-                    'text-sm font-medium',
+                    'text-sm',
                     isPositive && 'text-green-600',
                     isNegative && 'text-red-600',
                     !isPositive && !isNegative && 'text-muted-foreground'
@@ -52,14 +52,7 @@ export function KPICard({
               </div>
             )}
           </div>
-          <div
-            className={cn(
-              'flex h-12 w-12 items-center justify-center rounded-full bg-primary/10',
-              iconColor
-            )}
-          >
-            <Icon className="h-6 w-6" />
-          </div>
+          <Icon className={cn('h-5 w-5 mt-0.5', iconColor)} />
         </div>
       </CardContent>
     </Card>

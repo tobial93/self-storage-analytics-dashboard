@@ -125,3 +125,18 @@ export interface AttributionData {
   linear: number
   timeDecay: number
 }
+
+export type SubscriptionTier = 'free' | 'starter' | 'professional' | 'agency'
+export type SyncFrequency = 'hourly' | 'every_6h' | 'daily'
+
+export interface SyncSchedule {
+  id: string
+  org_id: string
+  platform: string
+  frequency: SyncFrequency
+  is_enabled: boolean
+  last_run_at: string | null
+  next_run_at: string | null
+  created_at: string
+  updated_at: string
+}

@@ -21,7 +21,7 @@ import { useMemo } from 'react'
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+const COLORS = ['#00d4aa', '#ff6b9d', '#f5a623', '#00a3cc', '#a78bfa']
 
 function ExecutiveOverviewSkeleton() {
   return (
@@ -112,6 +112,16 @@ export function ExecutiveOverview() {
 
   if (isLoading) return <ExecutiveOverviewSkeleton />
 
+  if (!metrics?.length && !campaigns?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <DollarSign className="h-8 w-8 text-muted-foreground mb-3" />
+        <p className="text-sm font-medium">No campaign data yet</p>
+        <p className="text-sm text-muted-foreground mt-1">Connect an ad platform from Integrations and sync your first campaigns.</p>
+      </div>
+    )
+  }
+
   const totalSpend = summary?.totalSpend || 0
   const totalRevenue = summary?.totalRevenue || 0
   const totalConversions = summary?.totalConversions || 0
@@ -172,12 +182,12 @@ export function ExecutiveOverview() {
                   <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} interval={4} />
                   <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
                     formatter={(value) => formatCurrency(Number(value))}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="spend" name="Ad Spend" stroke="#ef4444" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#00d4aa" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="spend" name="Ad Spend" stroke="#ff6b9d" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -230,7 +240,7 @@ export function ExecutiveOverview() {
                   <tr key={c.id} className={i < topCampaigns.length - 1 ? 'border-b' : ''}>
                     <td className="py-3 font-medium">{c.name}</td>
                     <td className="py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${c.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs ${c.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
                         {c.status}
                       </span>
                     </td>

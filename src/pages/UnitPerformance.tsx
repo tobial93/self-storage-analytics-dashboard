@@ -19,7 +19,7 @@ import { useMemo } from 'react'
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v)
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+const COLORS = ['#00d4aa', '#ff6b9d', '#f5a623', '#00a3cc', '#a78bfa']
 
 function UnitPerformanceSkeleton() {
   return (
@@ -27,6 +27,16 @@ function UnitPerformanceSkeleton() {
       <div className="grid gap-4 md:grid-cols-3"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>
       <SkeletonChart height={300} />
       <SkeletonTable rows={6} />
+    </div>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <Target className="h-8 w-8 text-muted-foreground mb-3" />
+      <p className="text-sm font-medium">No campaign data yet</p>
+      <p className="text-sm text-muted-foreground mt-1">Connect an ad platform and sync to see campaign performance.</p>
     </div>
   )
 }
@@ -62,6 +72,7 @@ export function UnitPerformance() {
   }, [campaigns, metrics])
 
   if (campLoading || metricsLoading) return <UnitPerformanceSkeleton />
+  if (campaignStats.length === 0) return <EmptyState />
 
   const bestPerformer = campaignStats[0]
   const worstPerformer = campaignStats[campaignStats.length - 1]
@@ -71,44 +82,38 @@ export function UnitPerformance() {
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                <TrendingUp className="h-6 w-6 text-green-600" />
-              </div>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Top Campaign</p>
-                <p className="text-lg font-bold truncate max-w-[150px]">{bestPerformer?.name || '—'}</p>
-                <p className="text-sm text-green-600">ROAS: {bestPerformer?.roas.toFixed(2)}x</p>
+                <p className="text-base font-semibold mt-1 truncate max-w-[180px]">{bestPerformer?.name || '—'}</p>
+                <p className="text-sm text-green-600 mt-0.5">ROAS: {bestPerformer?.roas.toFixed(2)}x</p>
               </div>
+              <TrendingUp className="h-4 w-4 text-green-600 mt-0.5" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-                <TrendingDown className="h-6 w-6 text-red-600" />
-              </div>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Needs Attention</p>
-                <p className="text-lg font-bold truncate max-w-[150px]">{worstPerformer?.name || '—'}</p>
-                <p className="text-sm text-red-600">ROAS: {worstPerformer?.roas.toFixed(2)}x</p>
+                <p className="text-base font-semibold mt-1 truncate max-w-[180px]">{worstPerformer?.name || '—'}</p>
+                <p className="text-sm text-red-600 mt-0.5">ROAS: {worstPerformer?.roas.toFixed(2)}x</p>
               </div>
+              <TrendingDown className="h-4 w-4 text-red-600 mt-0.5" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-                <Target className="h-6 w-6 text-blue-600" />
-              </div>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active Campaigns</p>
-                <p className="text-2xl font-bold">{activeCampaigns.length}</p>
+                <p className="text-2xl font-semibold mt-1">{activeCampaigns.length}</p>
                 <p className="text-sm text-muted-foreground">of {campaignStats.length} total</p>
               </div>
+              <Target className="h-4 w-4 text-muted-foreground mt-0.5" />
             </div>
           </CardContent>
         </Card>
@@ -124,7 +129,7 @@ export function UnitPerformance() {
                 <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `${v}x`} />
                 <YAxis type="category" dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))' }} width={160} className="text-xs" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
                   formatter={(v) => [`${Number(v).toFixed(2)}x`, 'ROAS']}
                 />
                 <Bar dataKey="roas" radius={[0, 4, 4, 0]}>
@@ -163,9 +168,9 @@ export function UnitPerformance() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">{formatCurrency(c.spend)}</TableCell>
-                  <TableCell className="text-right text-green-600 font-medium">{formatCurrency(c.revenue)}</TableCell>
+                  <TableCell className="text-right text-green-600">{formatCurrency(c.revenue)}</TableCell>
                   <TableCell className="text-right">
-                    <span className={c.roas >= 5 ? 'text-green-600 font-semibold' : c.roas >= 3 ? 'text-yellow-600' : 'text-red-600'}>
+                    <span className={c.roas >= 5 ? 'text-green-600 font-medium' : c.roas >= 3 ? 'text-yellow-600' : 'text-red-600'}>
                       {c.roas.toFixed(2)}x
                     </span>
                   </TableCell>
@@ -173,7 +178,7 @@ export function UnitPerformance() {
                   <TableCell className="text-right">{formatCurrency(c.cpa)}</TableCell>
                   <TableCell className="text-right">{c.ctr.toFixed(2)}%</TableCell>
                   <TableCell>
-                    <Badge className={c.performance === 'excellent' ? 'bg-green-500' : c.performance === 'good' ? 'bg-blue-500' : 'bg-gray-400'}>
+                    <Badge variant="outline" className={c.performance === 'excellent' ? 'border-green-500 text-green-600' : c.performance === 'good' ? 'border-primary text-primary' : 'border-muted-foreground text-muted-foreground'}>
                       {c.performance}
                     </Badge>
                   </TableCell>

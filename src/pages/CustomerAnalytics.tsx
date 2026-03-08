@@ -20,7 +20,7 @@ import { useMemo } from 'react'
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v)
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+const COLORS = ['#00d4aa', '#ff6b9d', '#f5a623', '#00a3cc', '#a78bfa']
 
 function CustomerAnalyticsSkeleton() {
   return (
@@ -85,6 +85,16 @@ export function CustomerAnalytics() {
 
   if (summaryLoading || metricsLoading || campLoading) return <CustomerAnalyticsSkeleton />
 
+  if (!metrics?.length || !campaigns?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Target className="h-8 w-8 text-muted-foreground mb-3" />
+        <p className="text-sm font-medium">No conversion data yet</p>
+        <p className="text-sm text-muted-foreground mt-1">Connect an ad platform and sync to see conversion analytics.</p>
+      </div>
+    )
+  }
+
   const totalConversions = summary?.totalConversions || 0
   const totalClicks = summary?.totalClicks || 0
   const totalSpend = summary?.totalSpend || 0
@@ -113,10 +123,10 @@ export function CustomerAnalytics() {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))' }} className="text-xs" />
                   <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} className="text-xs" />
-                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
+                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }} />
                   <Legend />
-                  <Bar dataKey="clicks" name="Clicks" fill="#3b82f6" />
-                  <Bar dataKey="conversions" name="Conversions" fill="#10b981" />
+                  <Bar dataKey="clicks" name="Clicks" fill="#00a3cc" />
+                  <Bar dataKey="conversions" name="Conversions" fill="#00d4aa" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -133,10 +143,10 @@ export function CustomerAnalytics() {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="week" tick={{ fill: 'hsl(var(--muted-foreground))' }} className="text-xs" />
                   <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} className="text-xs" />
-                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }} />
+                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }} />
                   <Legend />
-                  <Line type="monotone" dataKey="clicks" name="Clicks" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="conversions" name="Conversions" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981' }} />
+                  <Line type="monotone" dataKey="clicks" name="Clicks" stroke="#00a3cc" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="conversions" name="Conversions" stroke="#00d4aa" strokeWidth={2} dot={{ fill: '#00d4aa' }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

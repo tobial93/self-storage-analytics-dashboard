@@ -1,4 +1,4 @@
-import { Cable, XCircle, CheckCircle2, RefreshCw, Trash2 } from 'lucide-react'
+import { XCircle, CheckCircle2, RefreshCw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useCurrentOrganization } from '@/contexts/OrganizationContext'
 import { useAdConnections, useDisconnectAdAccount } from '@/hooks/useApiData'
@@ -30,18 +30,17 @@ export function Integrations() {
   const [syncingId, setSyncingId] = useState<string | null>(null)
   const [syncResult, setSyncResult] = useState<{ id: string; message: string; error?: boolean } | null>(null)
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null)
+  const [connectError, setConnectError] = useState<string | null>(null)
 
   const handleConnectGoogleAds = () => {
-    if (!organizationId) {
-      alert('Please select an organization first')
-      return
-    }
+    if (!organizationId) return
     initiateGoogleAdsOAuth(organizationId)
   }
 
   const handleConnectFacebook = async () => {
     if (!organizationId) return
     setConnectingPlatform('facebook_ads')
+    setConnectError(null)
     try {
       const clerkToken = await getToken({ template: 'supabase' })
       if (!clerkToken) throw new Error('Not authenticated')
@@ -50,7 +49,7 @@ export function Integrations() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to connect Facebook Ads'
       console.error('Facebook connect error:', err)
-      alert(message)
+      setConnectError(message)
     } finally {
       setConnectingPlatform(null)
     }
@@ -118,44 +117,46 @@ export function Integrations() {
     }
   }
 
-  // Per-platform connection counts for card status display
   const googleAdsConnections = connections?.filter(c => c.platform === 'google_ads') || []
   const facebookAdsConnections = connections?.filter(c => c.platform === 'facebook_ads') || []
   const ga4Connections = connections?.filter(c => c.platform === 'ga4') || []
   const linkedinConnections = connections?.filter(c => c.platform === 'linkedin_ads') || []
   const allConnections = connections || []
 
+  const platforms = [
+    { key: 'google_ads', name: 'Google Ads', desc: 'Sync campaigns, ad groups, and performance metrics', connections: googleAdsConnections, onConnect: handleConnectGoogleAds },
+    { key: 'facebook_ads', name: 'Facebook Ads', desc: 'Sync campaigns and ads (demo data)', connections: facebookAdsConnections, onConnect: handleConnectFacebook, connecting: connectingPlatform === 'facebook_ads' },
+    { key: 'ga4', name: 'Google Analytics 4', desc: 'Track conversion events and user behavior', connections: ga4Connections, onConnect: handleConnectGA4 },
+    { key: 'linkedin_ads', name: 'LinkedIn Ads', desc: 'B2B advertising campaigns and lead generation', connections: linkedinConnections, onConnect: handleConnectLinkedIn },
+  ]
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Ad Platform Integrations</h2>
-        <p className="text-muted-foreground mt-1">
-          Connect your advertising accounts to sync campaign data
-        </p>
-      </div>
+      {connectError && (
+        <div className="p-3 border border-red-200 dark:border-red-800 rounded-md bg-red-50 dark:bg-red-900/20">
+          <p className="text-sm text-red-700 dark:text-red-300">{connectError}</p>
+        </div>
+      )}
 
-      {/* Connected Accounts — shows all platforms */}
+      {/* Connected Accounts */}
       {!isLoading && allConnections.length > 0 && (
-        <div className="border rounded-lg p-6 bg-card">
-          <h3 className="font-semibold mb-4">Connected Accounts</h3>
-          <div className="space-y-3">
+        <div className="border rounded-lg p-4 bg-card">
+          <p className="text-sm font-medium mb-3">Connected Accounts</p>
+          <div className="space-y-2">
             {allConnections.map((connection) => (
               <div
                 key={connection.id}
                 className="flex items-center justify-between p-3 border rounded-md"
               >
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <div>
-                    <p className="font-medium">
+                <div className="flex items-center gap-3 min-w-0">
+                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
                       {connection.account_name || getPlatformDisplayName(connection.platform)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {getPlatformDisplayName(connection.platform)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {connection.last_synced_at
-                        ? `Last synced ${formatDistanceToNow(new Date(connection.last_synced_at))} ago`
+                      {getPlatformDisplayName(connection.platform)} · {connection.last_synced_at
+                        ? `Synced ${formatDistanceToNow(new Date(connection.last_synced_at))} ago`
                         : 'Never synced'}
                     </p>
                     {syncResult !== null && syncResult.id === connection.id && (
@@ -165,21 +166,21 @@ export function Integrations() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => handleSync(connection.id, connection.platform)}
                     disabled={syncingId === connection.id}
-                    className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors disabled:opacity-50"
+                    className="p-2 hover:bg-muted rounded-md transition-colors disabled:opacity-50"
                     title="Sync now"
                   >
-                    <RefreshCw className={`h-4 w-4 text-blue-600 ${syncingId === connection.id ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`h-4 w-4 text-muted-foreground ${syncingId === connection.id ? 'animate-spin' : ''}`} />
                   </button>
                   <button
                     onClick={() => handleDisconnect(connection.id)}
-                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                    className="p-2 hover:bg-muted rounded-md transition-colors"
                     title="Disconnect"
                   >
-                    <Trash2 className="h-4 w-4 text-red-600" />
+                    <Trash2 className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </div>
               </div>
@@ -188,157 +189,39 @@ export function Integrations() {
         </div>
       )}
 
-      {/* Integration Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Google Ads */}
-        <div className="border rounded-lg p-6 bg-card">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <Cable className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
+      {/* Integration Cards — simple, no decorative icon containers */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {platforms.map((p) => (
+          <div key={p.key} className="border rounded-lg p-4 bg-card">
+            <div className="flex items-start justify-between mb-2">
               <div>
-                <h3 className="font-semibold">Google Ads</h3>
-                <p className="text-sm text-muted-foreground">
-                  {googleAdsConnections.length > 0
-                    ? `${googleAdsConnections.length} account(s) connected`
+                <p className="text-sm font-medium">{p.name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {p.connections.length > 0
+                    ? `${p.connections.length} account(s) connected`
                     : 'Not connected'}
                 </p>
               </div>
+              {p.connections.length > 0 ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              ) : (
+                <XCircle className="h-4 w-4 text-muted-foreground" />
+              )}
             </div>
-            {googleAdsConnections.length > 0 ? (
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-            ) : (
-              <XCircle className="h-5 w-5 text-muted-foreground" />
-            )}
+            <p className="text-xs text-muted-foreground mb-3">{p.desc}</p>
+            <button
+              onClick={p.onConnect}
+              disabled={!organizationId || p.connecting}
+              className="w-full px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {p.connecting
+                ? 'Connecting...'
+                : p.connections.length > 0
+                  ? 'Add Another Account'
+                  : `Connect ${p.name}`}
+            </button>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Connect your Google Ads account to sync campaigns, ad groups, and performance metrics
-          </p>
-          <button
-            onClick={handleConnectGoogleAds}
-            disabled={!organizationId}
-            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {googleAdsConnections.length > 0 ? 'Add Another Account' : 'Connect Google Ads'}
-          </button>
-        </div>
-
-        {/* Facebook Ads (Mock/Demo) */}
-        <div className="border rounded-lg p-6 bg-card">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                <Cable className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Facebook Ads</h3>
-                <p className="text-sm text-muted-foreground">
-                  {facebookAdsConnections.length > 0 ? 'Demo data connected' : 'Not connected'}
-                </p>
-              </div>
-            </div>
-            {facebookAdsConnections.length > 0 ? (
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-            ) : (
-              <XCircle className="h-5 w-5 text-muted-foreground" />
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Sync campaigns and ads from Facebook. Uses realistic demo data to showcase the integration.
-          </p>
-          <button
-            onClick={handleConnectFacebook}
-            disabled={!organizationId || connectingPlatform === 'facebook_ads'}
-            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {connectingPlatform === 'facebook_ads'
-              ? 'Connecting...'
-              : facebookAdsConnections.length > 0
-                ? 'Re-sync Demo Data'
-                : 'Connect Facebook Ads'}
-          </button>
-        </div>
-
-        {/* Google Analytics 4 */}
-        <div className="border rounded-lg p-6 bg-card">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                <Cable className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Google Analytics 4</h3>
-                <p className="text-sm text-muted-foreground">
-                  {ga4Connections.length > 0
-                    ? `${ga4Connections.length} property connected`
-                    : 'Not connected'}
-                </p>
-              </div>
-            </div>
-            {ga4Connections.length > 0 ? (
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-            ) : (
-              <XCircle className="h-5 w-5 text-muted-foreground" />
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Track conversion events and user behavior across your properties
-          </p>
-          <button
-            onClick={handleConnectGA4}
-            disabled={!organizationId}
-            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {ga4Connections.length > 0 ? 'Add Another Property' : 'Connect GA4'}
-          </button>
-        </div>
-
-        {/* LinkedIn Ads */}
-        <div className="border rounded-lg p-6 bg-card">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
-                <Cable className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold">LinkedIn Ads</h3>
-                <p className="text-sm text-muted-foreground">
-                  {linkedinConnections.length > 0
-                    ? `${linkedinConnections.length} account(s) connected`
-                    : 'Not connected'}
-                </p>
-              </div>
-            </div>
-            {linkedinConnections.length > 0 ? (
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-            ) : (
-              <XCircle className="h-5 w-5 text-muted-foreground" />
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Manage B2B advertising campaigns and lead generation. Requires LinkedIn Marketing Developer Platform access.
-          </p>
-          <button
-            onClick={handleConnectLinkedIn}
-            disabled={!organizationId}
-            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {linkedinConnections.length > 0 ? 'Add Another Account' : 'Connect LinkedIn Ads'}
-          </button>
-        </div>
-      </div>
-
-      {/* Info Box */}
-      <div className="border rounded-lg p-6 bg-muted/30">
-        <h3 className="font-semibold mb-2">About Integrations</h3>
-        <p className="text-sm text-muted-foreground">
-          Once connected, your ad platform data will sync automatically. You can manage connected
-          accounts above and view campaign data in the dashboard.
-        </p>
-        <p className="text-sm text-muted-foreground mt-2">
-          Click the <strong>sync icon</strong> next to a connected account to fetch the latest campaign data.
-        </p>
+        ))}
       </div>
     </div>
   )
