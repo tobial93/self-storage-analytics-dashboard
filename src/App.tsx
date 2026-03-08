@@ -48,7 +48,7 @@ function App() {
                 <Route path="/sign-in/*" element={<SignIn />} />
                 <Route path="/sign-up/*" element={<SignUp />} />
 
-                {/* Protected routes */}
+                {/* All other routes go through LandingGate */}
                 <Route
                   path="/*"
                   element={

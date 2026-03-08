@@ -19,17 +19,17 @@ export function LandingGate({ children }: LandingGateProps) {
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <div className="animate-spin rounded-md h-8 w-8 border-b-2 border-primary" />
       </div>
     )
   }
 
   if (!isSignedIn) {
-    // Show landing page at root path
-    if (location.pathname === '/') {
+    // Show landing page at root path or any path under root
+    // (unauthenticated users shouldn't see dashboard routes)
+    if (location.pathname === '/' || location.pathname === '') {
       return <Landing />
     }
-    // Redirect all other paths to sign-in
     return <Navigate to="/sign-in" state={{ from: location }} replace />
   }
 
