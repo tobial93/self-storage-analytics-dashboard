@@ -1,11 +1,10 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { ClerkProvider, SignedIn, SignedOut } from '@clerk/clerk-react'
+import { ClerkProvider } from '@clerk/clerk-react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { OrganizationProvider } from '@/contexts/OrganizationContext'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ExecutiveOverview } from '@/pages/ExecutiveOverview'
 import { UnitPerformance } from '@/pages/UnitPerformance'
@@ -18,7 +17,7 @@ import { SignUp } from '@/pages/auth/SignUp'
 import { CreateOrganization } from '@/pages/auth/CreateOrganization'
 import { OAuthCallback } from '@/pages/auth/OAuthCallback'
 import { Onboarding } from '@/pages/Onboarding'
-import { Landing } from '@/pages/Landing'
+import { LandingGate } from '@/pages/LandingGate'
 
 // Get Clerk publishable key from environment
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -49,30 +48,11 @@ function App() {
                 <Route path="/sign-in/*" element={<SignIn />} />
                 <Route path="/sign-up/*" element={<SignUp />} />
 
-                {/* Landing page — show to signed-out users at root */}
-                <Route
-                  path="/"
-                  element={
-                    <>
-                      <SignedOut>
-                        <Landing />
-                      </SignedOut>
-                      <SignedIn>
-                        <ProtectedRoute>
-                          <OrganizationProvider>
-                            <DashboardLayout />
-                          </OrganizationProvider>
-                        </ProtectedRoute>
-                      </SignedIn>
-                    </>
-                  }
-                />
-
                 {/* Protected routes */}
                 <Route
                   path="/*"
                   element={
-                    <ProtectedRoute>
+                    <LandingGate>
                       <OrganizationProvider>
                         <Routes>
                           <Route path="/create-organization/*" element={<CreateOrganization />} />
@@ -88,7 +68,7 @@ function App() {
                           </Route>
                         </Routes>
                       </OrganizationProvider>
-                    </ProtectedRoute>
+                    </LandingGate>
                   }
                 />
               </Routes>
