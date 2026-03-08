@@ -14,6 +14,7 @@ import {
 import { KPICard } from '@/components/cards/KPICard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SkeletonCard, SkeletonChart } from '@/components/ui/skeleton'
+import { DateRangePicker, useDateRange } from '@/components/DateRangePicker'
 import { useDashboardSummary, useMetricsByDateRange, useCampaigns } from '@/hooks/useApiData'
 import { DollarSign, Target, TrendingUp, MousePointerClick } from 'lucide-react'
 import { useMemo } from 'react'
@@ -32,20 +33,12 @@ function ExecutiveOverviewSkeleton() {
       <div className="grid gap-6 lg:grid-cols-2">
         <SkeletonChart height={300} /><SkeletonChart height={300} />
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
-        <SkeletonChart height={250} /><SkeletonChart height={250} />
-      </div>
     </div>
   )
 }
 
 export function ExecutiveOverview() {
-  const endDate = useMemo(() => new Date(), [])
-  const startDate = useMemo(() => {
-    const d = new Date()
-    d.setDate(d.getDate() - 29)
-    return d
-  }, [])
+  const { range, setRange, startDate, endDate } = useDateRange()
 
   const { data: summary, isLoading: summaryLoading } = useDashboardSummary(startDate, endDate)
   const { data: metrics, isLoading: metricsLoading } = useMetricsByDateRange(startDate, endDate)
@@ -53,26 +46,22 @@ export function ExecutiveOverview() {
 
   const isLoading = summaryLoading || metricsLoading || campaignsLoading
 
-  // Group metrics by date for the trend chart
   const trendData = useMemo(() => {
     if (!metrics) return []
     const byDate: Record<string, { date: string; revenue: number; spend: number; clicks: number }> = {}
     for (const m of metrics) {
       const d = m.metric_date
       if (!d) continue
-      if (!byDate[d]) {
-        byDate[d] = { date: d, revenue: 0, spend: 0, clicks: 0 }
-      }
+      if (!byDate[d]) byDate[d] = { date: d, revenue: 0, spend: 0, clicks: 0 }
       byDate[d].revenue += Number(m.revenue || 0)
       byDate[d].spend += Number(m.spend || 0)
       byDate[d].clicks += Number(m.clicks || 0)
     }
     return Object.values(byDate)
       .sort((a, b) => a.date.localeCompare(b.date))
-      .map(d => ({ ...d, date: d.date.slice(5) })) // Show MM-DD
+      .map(d => ({ ...d, date: d.date.slice(5) }))
   }, [metrics])
 
-  // Campaign spend breakdown for pie chart
   const campaignSpend = useMemo(() => {
     if (!metrics || !campaigns) return []
     const byCampaign: Record<string, number> = {}
@@ -87,7 +76,6 @@ export function ExecutiveOverview() {
       .sort((a, b) => b.value - a.value)
   }, [metrics, campaigns])
 
-  // Top campaigns table
   const topCampaigns = useMemo(() => {
     if (!metrics || !campaigns) return []
     const stats: Record<string, { spend: number; clicks: number; conversions: number; revenue: number }> = {}
@@ -110,152 +98,106 @@ export function ExecutiveOverview() {
       .slice(0, 5)
   }, [metrics, campaigns])
 
-  if (isLoading) return <ExecutiveOverviewSkeleton />
-
-  if (!metrics?.length && !campaigns?.length) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <DollarSign className="h-8 w-8 text-muted-foreground mb-3" />
-        <p className="text-sm font-medium">No campaign data yet</p>
-        <p className="text-sm text-muted-foreground mt-1">Connect an ad platform from Integrations and sync your first campaigns.</p>
-      </div>
-    )
-  }
-
-  const totalSpend = summary?.totalSpend || 0
-  const totalRevenue = summary?.totalRevenue || 0
-  const totalConversions = summary?.totalConversions || 0
-  const roas = totalSpend > 0 ? totalRevenue / totalSpend : 0
-  const cpa = totalConversions > 0 ? totalSpend / totalConversions : 0
-
   return (
     <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KPICard
-          title="Total Ad Spend"
-          value={formatCurrency(totalSpend)}
-          change={0}
-          changeLabel="last 30 days"
-          icon={DollarSign}
-          iconColor="text-blue-500"
-        />
-        <KPICard
-          title="Return on Ad Spend"
-          value={`${roas.toFixed(2)}x`}
-          change={0}
-          changeLabel="last 30 days"
-          icon={TrendingUp}
-          iconColor="text-green-500"
-        />
-        <KPICard
-          title="Total Conversions"
-          value={totalConversions.toLocaleString()}
-          change={0}
-          changeLabel="last 30 days"
-          icon={Target}
-          iconColor="text-purple-500"
-        />
-        <KPICard
-          title="Cost per Acquisition"
-          value={formatCurrency(cpa)}
-          change={0}
-          changeLabel="last 30 days"
-          icon={MousePointerClick}
-          iconColor="text-orange-500"
-          invertChange
-        />
-      </div>
+      <DateRangePicker value={range} onChange={setRange} />
 
-      {/* Charts Row 1 */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Spend vs Revenue Trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue vs Ad Spend (Last 30 Days)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} interval={4} />
-                  <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }}
-                    formatter={(value) => formatCurrency(Number(value))}
-                  />
-                  <Legend />
-                  <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#00d4aa" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="spend" name="Ad Spend" stroke="#ff6b9d" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Campaign Spend Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Spend by Campaign</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={campaignSpend} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }: { name?: string; percent?: number }) => { const n = name ?? ''; return `${n.split(' - ')[1] || n} ${((percent ?? 0) * 100).toFixed(0)}%` }} labelLine={false}>
-                    {campaignSpend.map((_, index) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Top Campaigns Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Campaign Performance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-muted-foreground">
-                  <th className="text-left pb-3 font-medium">Campaign</th>
-                  <th className="text-left pb-3 font-medium">Status</th>
-                  <th className="text-right pb-3 font-medium">Spend</th>
-                  <th className="text-right pb-3 font-medium">Revenue</th>
-                  <th className="text-right pb-3 font-medium">ROAS</th>
-                  <th className="text-right pb-3 font-medium">Clicks</th>
-                  <th className="text-right pb-3 font-medium">Conversions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topCampaigns.map((c, i) => (
-                  <tr key={c.id} className={i < topCampaigns.length - 1 ? 'border-b' : ''}>
-                    <td className="py-3 font-medium">{c.name}</td>
-                    <td className="py-3">
-                      <span className={`px-2 py-0.5 rounded text-xs ${c.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className="py-3 text-right">{formatCurrency(c.spend)}</td>
-                    <td className="py-3 text-right">{formatCurrency(c.revenue)}</td>
-                    <td className="py-3 text-right font-medium">{c.roas.toFixed(2)}x</td>
-                    <td className="py-3 text-right">{c.clicks.toLocaleString()}</td>
-                    <td className="py-3 text-right">{c.conversions.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {isLoading ? (
+        <ExecutiveOverviewSkeleton />
+      ) : !metrics?.length && !campaigns?.length ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <DollarSign className="h-8 w-8 text-muted-foreground mb-3" />
+          <p className="text-sm font-medium">No campaign data yet</p>
+          <p className="text-sm text-muted-foreground mt-1">Connect an ad platform from Integrations and sync your first campaigns.</p>
+        </div>
+      ) : (
+        <>
+          {/* KPI Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <KPICard title="Total Ad Spend" value={formatCurrency(summary?.totalSpend || 0)} icon={DollarSign} iconColor="text-muted-foreground" />
+            <KPICard title="ROAS" value={`${((summary?.totalSpend || 0) > 0 ? (summary?.totalRevenue || 0) / (summary?.totalSpend || 1) : 0).toFixed(2)}x`} icon={TrendingUp} iconColor="text-muted-foreground" />
+            <KPICard title="Conversions" value={(summary?.totalConversions || 0).toLocaleString()} icon={Target} iconColor="text-muted-foreground" />
+            <KPICard title="CPA" value={formatCurrency((summary?.totalConversions || 0) > 0 ? (summary?.totalSpend || 0) / (summary?.totalConversions || 1) : 0)} icon={MousePointerClick} iconColor="text-muted-foreground" invertChange />
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader><CardTitle>Revenue vs Ad Spend</CardTitle></CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trendData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} interval={4} />
+                      <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }} formatter={(value) => formatCurrency(Number(value))} />
+                      <Legend />
+                      <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#00d4aa" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="spend" name="Ad Spend" stroke="#ff6b9d" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Spend by Campaign</CardTitle></CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={campaignSpend} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }: { name?: string; percent?: number }) => { const n = name ?? ''; return `${n.split(' - ')[1] || n} ${((percent ?? 0) * 100).toFixed(0)}%` }} labelLine={false}>
+                        {campaignSpend.map((_, index) => (
+                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader><CardTitle>Campaign Performance</CardTitle></CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-muted-foreground">
+                      <th className="text-left pb-3 font-medium">Campaign</th>
+                      <th className="text-left pb-3 font-medium">Status</th>
+                      <th className="text-right pb-3 font-medium">Spend</th>
+                      <th className="text-right pb-3 font-medium">Revenue</th>
+                      <th className="text-right pb-3 font-medium">ROAS</th>
+                      <th className="text-right pb-3 font-medium">Clicks</th>
+                      <th className="text-right pb-3 font-medium">Conversions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topCampaigns.map((c, i) => (
+                      <tr key={c.id} className={i < topCampaigns.length - 1 ? 'border-b' : ''}>
+                        <td className="py-3 font-medium">{c.name}</td>
+                        <td className="py-3">
+                          <span className={`px-2 py-0.5 rounded text-xs ${c.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="py-3 text-right">{formatCurrency(c.spend)}</td>
+                        <td className="py-3 text-right">{formatCurrency(c.revenue)}</td>
+                        <td className="py-3 text-right font-medium">{c.roas.toFixed(2)}x</td>
+                        <td className="py-3 text-right">{c.clicks.toLocaleString()}</td>
+                        <td className="py-3 text-right">{c.conversions.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   )
 }

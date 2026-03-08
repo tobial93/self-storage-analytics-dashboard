@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { KPICard } from '@/components/cards/KPICard'
 import { SkeletonCard, SkeletonChart } from '@/components/ui/skeleton'
+import { DateRangePicker, useDateRange } from '@/components/DateRangePicker'
 import { useMetricsByDateRange } from '@/hooks/useApiData'
 import { TrendingUp, Calendar, DollarSign } from 'lucide-react'
 import { useMemo } from 'react'
@@ -31,8 +32,7 @@ function ForecastSkeleton() {
 }
 
 export function Forecast() {
-  const endDate = useMemo(() => new Date(), [])
-  const startDate = useMemo(() => { const d = new Date(); d.setDate(d.getDate() - 29); return d }, [])
+  const { range, setRange, startDate, endDate } = useDateRange()
 
   const { data: metrics, isLoading } = useMetricsByDateRange(startDate, endDate)
 
@@ -119,6 +119,8 @@ export function Forecast() {
 
   return (
     <div className="space-y-6">
+      <DateRangePicker value={range} onChange={setRange} />
+
       <div className="grid gap-4 md:grid-cols-3">
         <KPICard title="14-Day Revenue Forecast" value={formatCurrency(forecastedRevenue)} change={0} changeLabel="next 14 days" icon={TrendingUp} iconColor="text-muted-foreground" />
         <KPICard title="Avg ROAS (30 days)" value={`${avgRoas.toFixed(2)}x`} change={0} changeLabel="actual" icon={DollarSign} iconColor="text-muted-foreground" />
