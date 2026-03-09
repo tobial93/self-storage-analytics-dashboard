@@ -144,6 +144,8 @@ Located in `supabase/functions/`. Written in **Deno TypeScript** (import from `h
 | `create-billing-portal` | Open Stripe Customer Portal | |
 | `stripe-webhook` | Handle Stripe subscription events → update `subscription_tier` | Deploy with `--no-verify-jwt` |
 | `scheduled-sync` | Hourly cron + HTTP; runs due `sync_schedules` rows | `Deno.cron('0 * * * *', ...)` |
+| `ai-insights` | Claude-powered campaign analysis | Requires `ANTHROPIC_API_KEY` secret |
+| `send-alert-emails` | Email delivery for unresolved alerts | Requires `RESEND_API_KEY` + `ALERT_FROM_EMAIL` secrets |
 
 ### Stripe Billing
 
@@ -187,4 +189,7 @@ STRIPE_PRICE_STARTER=
 STRIPE_PRICE_PROFESSIONAL=
 STRIPE_PRICE_AGENCY=
 FRONTEND_URL=https://self-storage-analytics-dashboard-production.up.railway.app
+ANTHROPIC_API_KEY=
+RESEND_API_KEY=
+ALERT_FROM_EMAIL=alerts@yourdomain.com
 ```

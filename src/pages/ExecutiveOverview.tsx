@@ -15,9 +15,11 @@ import { KPICard } from '@/components/cards/KPICard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SkeletonCard, SkeletonChart } from '@/components/ui/skeleton'
 import { DateRangePicker, useDateRange } from '@/components/DateRangePicker'
-import { useDashboardSummary, useMetricsByDateRange, useCampaigns } from '@/hooks/useApiData'
-import { DollarSign, Target, TrendingUp, MousePointerClick } from 'lucide-react'
-import { useMemo } from 'react'
+import { useDashboardSummary, useMetricsByDateRange, useCampaigns, useAiInsights } from '@/hooks/useApiData'
+import { DollarSign, Target, TrendingUp, MousePointerClick, Sparkles, RefreshCw } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useCurrentOrganization } from '@/contexts/OrganizationContext'
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
@@ -39,10 +41,17 @@ function ExecutiveOverviewSkeleton() {
 
 export function ExecutiveOverview() {
   const { range, setRange, startDate, endDate } = useDateRange()
+  const { organizationId } = useCurrentOrganization()
+  const queryClient = useQueryClient()
+  const [insightsOpen, setInsightsOpen] = useState(false)
 
   const { data: summary, isLoading: summaryLoading } = useDashboardSummary(startDate, endDate)
   const { data: metrics, isLoading: metricsLoading } = useMetricsByDateRange(startDate, endDate)
   const { data: campaigns, isLoading: campaignsLoading } = useCampaigns()
+  const { data: insights, isLoading: insightsLoading, error: insightsError } = useAiInsights(
+    insightsOpen ? startDate : undefined,
+    insightsOpen ? endDate : undefined,
+  )
 
   const isLoading = summaryLoading || metricsLoading || campaignsLoading
 
@@ -194,6 +203,55 @@ export function ExecutiveOverview() {
                   </tbody>
                 </table>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Insights */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle>AI Campaign Insights</CardTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                  {insightsOpen && (
+                    <button
+                      onClick={() => queryClient.invalidateQueries({ queryKey: ['ai-insights', organizationId] })}
+                      disabled={insightsLoading}
+                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${insightsLoading ? 'animate-spin' : ''}`} /> Refresh
+                    </button>
+                  )}
+                  {!insightsOpen && (
+                    <button
+                      onClick={() => setInsightsOpen(true)}
+                      className="text-sm text-primary hover:text-primary/80 transition-colors"
+                    >
+                      Generate insights
+                    </button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!insightsOpen ? (
+                <p className="text-sm text-muted-foreground">
+                  Click "Generate insights" to get AI-powered analysis of your campaign performance for the selected date range.
+                </p>
+              ) : insightsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Analyzing campaign data...
+                </div>
+              ) : insightsError ? (
+                <p className="text-sm text-red-600">
+                  Failed to generate insights. Make sure ANTHROPIC_API_KEY is configured in Supabase secrets.
+                </p>
+              ) : (
+                <div className="text-sm leading-relaxed whitespace-pre-line">{insights}</div>
+              )}
             </CardContent>
           </Card>
         </>

@@ -381,6 +381,35 @@ export async function getSyncSchedules(orgId: string): Promise<SyncSchedule[]> {
   return data || []
 }
 
+// ============================================================
+// AI INSIGHTS
+// ============================================================
+
+export async function getAiInsights(
+  orgId: string,
+  startDate?: Date,
+  endDate?: Date
+): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('ai-insights', {
+    body: {
+      org_id: orgId,
+      start_date: startDate?.toISOString().split('T')[0],
+      end_date: endDate?.toISOString().split('T')[0],
+    },
+  })
+
+  if (error) {
+    console.error('Error fetching AI insights:', error)
+    throw error
+  }
+
+  return data?.insights || 'Unable to generate insights.'
+}
+
+// ============================================================
+// SYNC SCHEDULES
+// ============================================================
+
 export async function upsertSyncSchedule(
   orgId: string,
   platform: string,

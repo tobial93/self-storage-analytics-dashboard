@@ -185,6 +185,22 @@ export function useMarkOnboardingComplete() {
 }
 
 // ============================================================
+// AI INSIGHTS
+// ============================================================
+
+export function useAiInsights(startDate?: Date, endDate?: Date) {
+  const { organizationId } = useCurrentOrganization()
+
+  return useQuery({
+    queryKey: ['ai-insights', organizationId, startDate, endDate],
+    queryFn: () => api.getAiInsights(organizationId!, startDate, endDate),
+    enabled: !!organizationId,
+    staleTime: 5 * 60 * 1000, // Cache insights for 5 minutes
+    retry: 1,
+  })
+}
+
+// ============================================================
 // SYNC SCHEDULES
 // ============================================================
 
