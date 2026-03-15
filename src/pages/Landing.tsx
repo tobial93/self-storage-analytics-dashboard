@@ -214,7 +214,7 @@ export function Landing() {
                       <YAxis tick={{ fontSize: 9, fill: 'var(--color-muted-foreground)' }} tickFormatter={(v: number) => `$${(v / 1000).toFixed(1)}k`} />
                       <Tooltip
                         contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 6, fontSize: 10 }}
-                        formatter={(value: number) => [`$${value.toLocaleString()}`, undefined]}
+                        formatter={(value: number | undefined) => [`$${(value ?? 0).toLocaleString()}`, undefined]}
                       />
                       <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#00d4aa" strokeWidth={2} dot={false} />
                       <Line type="monotone" dataKey="spend" name="Ad Spend" stroke="#ff6b9d" strokeWidth={2} dot={false} />
@@ -232,7 +232,7 @@ export function Landing() {
                         cy="50%"
                         outerRadius={55}
                         dataKey="value"
-                        label={({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`}
                         style={{ fontSize: 8 }}
                       >
                         {mockCampaignSpend.map((_, i) => (
@@ -241,7 +241,7 @@ export function Landing() {
                       </Pie>
                       <Tooltip
                         contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 6, fontSize: 10 }}
-                        formatter={(value: number) => [`$${value.toLocaleString()}`, undefined]}
+                        formatter={(value: number | undefined) => [`$${(value ?? 0).toLocaleString()}`, undefined]}
                       />
                     </PieChart>
                   </ResponsiveContainer>
