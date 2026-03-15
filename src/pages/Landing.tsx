@@ -15,6 +15,18 @@ import {
   Moon,
 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
+import {
+  LineChart as RechartsLineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts'
 
 /* ── Data ─────────────────────────────────────────────────────────── */
 
@@ -82,11 +94,36 @@ const mockKpis = [
   { label: 'CPA', value: '$87.38' },
 ]
 
+const mockTrendData = [
+  { date: 'Mar 1', revenue: 2100, spend: 820 },
+  { date: 'Mar 3', revenue: 2400, spend: 780 },
+  { date: 'Mar 5', revenue: 1900, spend: 850 },
+  { date: 'Mar 7', revenue: 2800, spend: 900 },
+  { date: 'Mar 9', revenue: 3100, spend: 870 },
+  { date: 'Mar 11', revenue: 2600, spend: 920 },
+  { date: 'Mar 13', revenue: 3400, spend: 880 },
+  { date: 'Mar 15', revenue: 3800, spend: 950 },
+  { date: 'Mar 17', revenue: 3200, spend: 910 },
+  { date: 'Mar 19', revenue: 4100, spend: 980 },
+  { date: 'Mar 21', revenue: 3900, spend: 940 },
+  { date: 'Mar 23', revenue: 4500, spend: 1020 },
+]
+
+const mockCampaignSpend = [
+  { name: '10x10 Units', value: 3200 },
+  { name: '5x5 Climate', value: 2800 },
+  { name: 'Vehicle Storage', value: 2100 },
+  { name: 'First Month Free', value: 1900 },
+  { name: 'Business Storage', value: 1400 },
+]
+
+const PIE_COLORS = ['#00d4aa', '#ff6b9d', '#f5a623', '#00a3cc', '#a78bfa']
+
 /* ── Component ────────────────────────────────────────────────────── */
 
 export function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const { toggleTheme } = useTheme()
+  const { theme, toggleTheme } = useTheme()
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -102,8 +139,7 @@ export function Landing() {
               onClick={toggleTheme}
               className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
-              <Sun className="h-4 w-4 hidden dark:block" />
-              <Moon className="h-4 w-4 block dark:hidden" />
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
             <Link to="/sign-in" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Sign in
@@ -166,20 +202,50 @@ export function Landing() {
                   </div>
                 ))}
               </div>
-              {/* Mock chart area */}
-              <div className="border border-border rounded-md p-4 h-36 flex items-end gap-1">
-                {[35, 42, 38, 55, 48, 62, 58, 70, 65, 78, 72, 85, 80, 88, 92, 87, 95, 90, 98, 94].map((h, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 bg-primary/20 rounded-t-sm"
-                    style={{ height: `${h}%` }}
-                  >
-                    <div
-                      className="w-full bg-primary/60 rounded-t-sm"
-                      style={{ height: '40%', marginTop: 'auto' }}
-                    />
-                  </div>
-                ))}
+              {/* Mock charts — mirroring dashboard layout */}
+              <div className="grid grid-cols-3 gap-4">
+                {/* Revenue vs Ad Spend line chart */}
+                <div className="col-span-2 border border-border rounded-md p-4">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-3">Revenue vs Ad Spend</p>
+                  <ResponsiveContainer width="100%" height={140}>
+                    <RechartsLineChart data={mockTrendData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--color-muted-foreground)' }} />
+                      <YAxis tick={{ fontSize: 9, fill: 'var(--color-muted-foreground)' }} tickFormatter={(v: number) => `$${(v / 1000).toFixed(1)}k`} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 6, fontSize: 10 }}
+                        formatter={(value: number) => [`$${value.toLocaleString()}`, undefined]}
+                      />
+                      <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#00d4aa" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="spend" name="Ad Spend" stroke="#ff6b9d" strokeWidth={2} dot={false} />
+                    </RechartsLineChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Spend by Campaign pie chart */}
+                <div className="border border-border rounded-md p-4">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Spend by Campaign</p>
+                  <ResponsiveContainer width="100%" height={155}>
+                    <PieChart>
+                      <Pie
+                        data={mockCampaignSpend}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={55}
+                        dataKey="value"
+                        label={({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        style={{ fontSize: 8 }}
+                      >
+                        {mockCampaignSpend.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: 6, fontSize: 10 }}
+                        formatter={(value: number) => [`$${value.toLocaleString()}`, undefined]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
           </div>
