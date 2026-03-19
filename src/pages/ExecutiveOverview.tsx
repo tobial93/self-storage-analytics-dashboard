@@ -20,6 +20,7 @@ import { DollarSign, Target, TrendingUp, MousePointerClick, Sparkles, RefreshCw 
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCurrentOrganization } from '@/contexts/OrganizationContext'
+import { UpgradePrompt } from '@/components/UpgradePrompt'
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
@@ -41,7 +42,7 @@ function ExecutiveOverviewSkeleton() {
 
 export function ExecutiveOverview() {
   const { range, setRange, startDate, endDate } = useDateRange()
-  const { organizationId } = useCurrentOrganization()
+  const { organizationId, canAccessFeature } = useCurrentOrganization()
   const queryClient = useQueryClient()
   const [insightsOpen, setInsightsOpen] = useState(false)
 
@@ -214,29 +215,33 @@ export function ExecutiveOverview() {
                   <Sparkles className="h-4 w-4 text-muted-foreground" />
                   <CardTitle>AI Campaign Insights</CardTitle>
                 </div>
-                <div className="flex items-center gap-2">
-                  {insightsOpen && (
-                    <button
-                      onClick={() => queryClient.invalidateQueries({ queryKey: ['ai-insights', organizationId] })}
-                      disabled={insightsLoading}
-                      className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-                    >
-                      <RefreshCw className={`h-3.5 w-3.5 ${insightsLoading ? 'animate-spin' : ''}`} /> Refresh
-                    </button>
-                  )}
-                  {!insightsOpen && (
-                    <button
-                      onClick={() => setInsightsOpen(true)}
-                      className="text-sm text-primary hover:text-primary/80 transition-colors"
-                    >
-                      Generate insights
-                    </button>
-                  )}
-                </div>
+                {canAccessFeature('ai_insights') && (
+                  <div className="flex items-center gap-2">
+                    {insightsOpen && (
+                      <button
+                        onClick={() => queryClient.invalidateQueries({ queryKey: ['ai-insights', organizationId] })}
+                        disabled={insightsLoading}
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${insightsLoading ? 'animate-spin' : ''}`} /> Refresh
+                      </button>
+                    )}
+                    {!insightsOpen && (
+                      <button
+                        onClick={() => setInsightsOpen(true)}
+                        className="text-sm text-primary hover:text-primary/80 transition-colors"
+                      >
+                        Generate insights
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent>
-              {!insightsOpen ? (
+              {!canAccessFeature('ai_insights') ? (
+                <UpgradePrompt feature="ai_insights" />
+              ) : !insightsOpen ? (
                 <p className="text-sm text-muted-foreground">
                   Click "Generate insights" to get AI-powered analysis of your campaign performance for the selected date range.
                 </p>

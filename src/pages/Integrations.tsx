@@ -1,6 +1,7 @@
 import { XCircle, CheckCircle2, RefreshCw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useCurrentOrganization } from '@/contexts/OrganizationContext'
+import { getConnectionLimit } from '@/lib/featureGating'
 import { useAdConnections, useDisconnectAdAccount } from '@/hooks/useApiData'
 import { initiateGoogleAdsOAuth } from '@/services/googleAds'
 import { connectFacebookAdsMock, syncFacebookAdsMock } from '@/services/facebookAds'
@@ -22,8 +23,12 @@ function getPlatformDisplayName(platform: string): string {
 }
 
 export function Integrations() {
-  const { organizationId } = useCurrentOrganization()
+  const { organizationId, subscriptionTier } = useCurrentOrganization()
   const { data: connections, isLoading } = useAdConnections()
+  const tier = subscriptionTier || 'free'
+  const connectionLimit = getConnectionLimit(tier)
+  const activeConnectionCount = connections?.length || 0
+  const atLimit = activeConnectionCount >= connectionLimit
   const disconnectMutation = useDisconnectAdAccount()
   const queryClient = useQueryClient()
   const { getToken } = useAuth()
@@ -132,6 +137,15 @@ export function Integrations() {
 
   return (
     <div className="space-y-6">
+      {atLimit && connectionLimit < Infinity && (
+        <div className="p-3 border border-yellow-200 dark:border-yellow-800 rounded-md bg-yellow-50 dark:bg-yellow-900/20">
+          <p className="text-sm text-yellow-700 dark:text-yellow-300">
+            You've reached the {connectionLimit} connection{connectionLimit === 1 ? '' : 's'} limit on the {tier.charAt(0).toUpperCase() + tier.slice(1)} plan.{' '}
+            <a href="/settings" className="underline">Upgrade</a> to connect more platforms.
+          </p>
+        </div>
+      )}
+
       {connectError && (
         <div className="p-3 border border-red-200 dark:border-red-800 rounded-md bg-red-50 dark:bg-red-900/20">
           <p className="text-sm text-red-700 dark:text-red-300">{connectError}</p>
@@ -211,7 +225,7 @@ export function Integrations() {
             <p className="text-xs text-muted-foreground mb-3">{p.desc}</p>
             <button
               onClick={p.onConnect}
-              disabled={!organizationId || p.connecting}
+              disabled={!organizationId || p.connecting || (atLimit && p.connections.length === 0)}
               className="w-full px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {p.connecting

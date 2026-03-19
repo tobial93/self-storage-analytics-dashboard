@@ -18,6 +18,7 @@ import { exportCsv } from '@/components/CsvExport'
 import { useDashboardSummary, useMetricsByDateRange, useCampaigns } from '@/hooks/useApiData'
 import { Target, TrendingUp, DollarSign, MousePointerClick, Download } from 'lucide-react'
 import { useMemo } from 'react'
+import { useCurrentOrganization } from '@/contexts/OrganizationContext'
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v)
@@ -38,6 +39,7 @@ function CustomerAnalyticsSkeleton() {
 }
 
 export function CustomerAnalytics() {
+  const { canAccessFeature } = useCurrentOrganization()
   const { range, setRange, startDate, endDate } = useDateRange()
 
   const { data: summary, isLoading: summaryLoading } = useDashboardSummary(startDate, endDate)
@@ -171,9 +173,11 @@ export function CustomerAnalytics() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Conversion Details by Campaign</CardTitle>
-                <button onClick={handleCsvExport} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  <Download className="h-4 w-4" /> Export CSV
-                </button>
+                {canAccessFeature('csv_export') && (
+                  <button onClick={handleCsvExport} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    <Download className="h-4 w-4" /> Export CSV
+                  </button>
+                )}
               </div>
             </CardHeader>
             <CardContent>

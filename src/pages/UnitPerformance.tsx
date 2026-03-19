@@ -17,6 +17,7 @@ import { exportCsv } from '@/components/CsvExport'
 import { useCampaigns, useMetricsByDateRange } from '@/hooks/useApiData'
 import { TrendingUp, TrendingDown, Target, Search, Download } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useCurrentOrganization } from '@/contexts/OrganizationContext'
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v)
@@ -34,6 +35,7 @@ function UnitPerformanceSkeleton() {
 }
 
 export function UnitPerformance() {
+  const { canAccessFeature } = useCurrentOrganization()
   const { range, setRange, startDate, endDate } = useDateRange()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused'>('all')
@@ -214,9 +216,11 @@ export function UnitPerformance() {
             <CardHeader>
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <CardTitle>Campaign Details</CardTitle>
-                <button onClick={handleCsvExport} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  <Download className="h-4 w-4" /> Export CSV
-                </button>
+                {canAccessFeature('csv_export') && (
+                  <button onClick={handleCsvExport} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    <Download className="h-4 w-4" /> Export CSV
+                  </button>
+                )}
               </div>
             </CardHeader>
             <CardContent>

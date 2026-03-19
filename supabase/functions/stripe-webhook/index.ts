@@ -65,12 +65,22 @@ Deno.serve(async (req: Request) => {
         const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
         const tier = getTierFromSubscription(subscription)
 
+        const updateData: Record<string, unknown> = {
+          stripe_subscription_id: subscription.id,
+          subscription_tier: tier,
+        }
+
+        // Persist trial dates if subscription has a trial
+        if (subscription.trial_start) {
+          updateData.trial_started_at = new Date(subscription.trial_start * 1000).toISOString()
+        }
+        if (subscription.trial_end) {
+          updateData.trial_ends_at = new Date(subscription.trial_end * 1000).toISOString()
+        }
+
         await supabase
           .from('organizations')
-          .update({
-            stripe_subscription_id: subscription.id,
-            subscription_tier: tier,
-          })
+          .update(updateData)
           .eq('id', orgId)
         break
       }
@@ -83,12 +93,22 @@ Deno.serve(async (req: Request) => {
         const isActive = subscription.status === 'active' || subscription.status === 'trialing'
         const tier = isActive ? getTierFromSubscription(subscription) : 'free'
 
+        const updateData: Record<string, unknown> = {
+          stripe_subscription_id: subscription.id,
+          subscription_tier: tier,
+        }
+
+        // Update trial end date (null if trial ended)
+        if (subscription.trial_end) {
+          updateData.trial_ends_at = new Date(subscription.trial_end * 1000).toISOString()
+        } else if (subscription.status === 'active') {
+          // Trial has ended, subscription is now active
+          updateData.trial_ends_at = null
+        }
+
         await supabase
           .from('organizations')
-          .update({
-            stripe_subscription_id: subscription.id,
-            subscription_tier: tier,
-          })
+          .update(updateData)
           .eq('id', orgId)
         break
       }

@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { useOrganization, useUser, useAuth } from '@clerk/clerk-react';
 import { setSupabaseAuth, supabase } from '@/lib/supabase';
 import type { SubscriptionTier } from '@/data/types';
+import { canAccess, isTrialActive, trialDaysRemaining } from '@/lib/featureGating';
+import type { Feature } from '@/lib/featureGating';
 
 interface OrganizationContextType {
   organizationId: string | null;
@@ -12,6 +14,10 @@ interface OrganizationContextType {
   userRole: 'admin' | 'manager' | 'viewer' | null;
   subscriptionTier: SubscriptionTier | null;
   onboardingCompleted: boolean | null;  // null = still loading from DB
+  trialEndsAt: string | null;
+  isTrialing: boolean;
+  trialDaysLeft: number;
+  canAccessFeature: (feature: Feature) => boolean;
   refetchOrgData: () => void;
 }
 
@@ -30,6 +36,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
 
   // Sync Clerk authentication with Supabase
   useEffect(() => {
@@ -59,7 +66,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
     try {
       const { data, error } = await supabase
         .from('organizations')
-        .select('subscription_tier, onboarding_completed')
+        .select('subscription_tier, onboarding_completed, trial_ends_at')
         .eq('id', orgId)
         .single();
 
@@ -71,6 +78,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
       if (data) {
         setSubscriptionTier((data.subscription_tier as SubscriptionTier) || 'free');
         setOnboardingCompleted(data.onboarding_completed ?? false);
+        setTrialEndsAt(data.trial_ends_at ?? null);
       }
     } catch (error) {
       console.error('Error fetching org data:', error);
@@ -84,6 +92,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
       // No org, reset
       setSubscriptionTier(null);
       setOnboardingCompleted(null);
+      setTrialEndsAt(null);
     }
   }, [organization?.id, orgLoaded, fetchOrgData]);
 
@@ -107,6 +116,10 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
     return 'viewer';
   };
 
+  const effectiveTier = subscriptionTier || 'free';
+  const trialing = isTrialActive(trialEndsAt);
+  const daysLeft = trialDaysRemaining(trialEndsAt);
+
   const value: OrganizationContextType = {
     organizationId: organization?.id || null,
     organizationName: organization?.name || null,
@@ -115,6 +128,10 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
     userRole: getUserRole(),
     subscriptionTier,
     onboardingCompleted,
+    trialEndsAt,
+    isTrialing: trialing,
+    trialDaysLeft: daysLeft,
+    canAccessFeature: (feature: Feature) => canAccess(effectiveTier, feature),
     refetchOrgData,
   };
 

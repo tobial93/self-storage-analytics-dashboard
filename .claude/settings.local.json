@@ -7,7 +7,15 @@
       "Bash(xargs basename:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(npm run:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(find \"/c/Users/tle/PycharmProjects/self-storage-analytics-dashboard/src\" -name \"*.test.ts\" -o -name \"*.spec.ts\" 2>/dev/null | head -10)",
+      "Bash(find \"/c/Users/tle/PycharmProjects/self-storage-analytics-dashboard/supabase/functions\" -type f -name \"*.ts\" 2>/dev/null | head -20)",
+      "Bash(find \"/c/Users/tle/PycharmProjects/self-storage-analytics-dashboard\" -iname \"*backup*\" -o -iname \"*disaster*\" -o -iname \"*recovery*\" 2>/dev/null | grep -v node_modules)",
+      "Bash(ls -la \"/c/Users/tle/PycharmProjects/self-storage-analytics-dashboard/src/pages\" | grep -v \"^d\" | grep \"\\\\.tsx$\")",
+      "Bash(find \"/c/Users/tle/PycharmProjects/self-storage-analytics-dashboard\" -type f \\\\\\( -name \"*.sh\" -o -name \"*backup*\" -o -name \"*recover*\" -o -name \"*disaster*\" \\\\\\) 2>/dev/null | grep -v node_modules)",
+      "Bash(grep -r \"backup\\\\|recovery\\\\|DR\\\\|disaster\" \"/c/Users/tle/PycharmProjects/self-storage-analytics-dashboard\" --include=\"*.md\" 2>/dev/null | grep -v node_modules | head -5)",
+      "Bash(ls -la /c/Users/tle/PycharmProjects/self-storage-analytics-dashboard/supabase/migrations/ | grep -E \"\\\\.sql$\")",
+      "Bash(grep -i \"audit\\\\|activity\\\\|history\" /c/Users/tle/PycharmProjects/self-storage-analytics-dashboard/supabase/migrations/001_initial_schema*.sql)"
     ]
   }
 }

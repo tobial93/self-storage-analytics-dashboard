@@ -17,6 +17,8 @@ import { DateRangePicker, useDateRange } from '@/components/DateRangePicker'
 import { useMetricsByDateRange } from '@/hooks/useApiData'
 import { TrendingUp, Calendar, DollarSign } from 'lucide-react'
 import { useMemo } from 'react'
+import { useCurrentOrganization } from '@/contexts/OrganizationContext'
+import { UpgradePrompt } from '@/components/UpgradePrompt'
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v)
@@ -32,6 +34,7 @@ function ForecastSkeleton() {
 }
 
 export function Forecast() {
+  const { canAccessFeature } = useCurrentOrganization()
   const { range, setRange, startDate, endDate } = useDateRange()
 
   const { data: metrics, isLoading } = useMetricsByDateRange(startDate, endDate)
@@ -99,6 +102,10 @@ export function Forecast() {
     }
     return weeks
   }, [dailyData])
+
+  if (!canAccessFeature('forecast')) {
+    return <UpgradePrompt feature="forecast" />
+  }
 
   if (isLoading) return <ForecastSkeleton />
 

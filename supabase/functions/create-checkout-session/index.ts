@@ -52,6 +52,15 @@ Deno.serve(async (req: Request) => {
         .eq('id', org_id)
     }
 
+    // Check if org already had a subscription (no trial for returning customers)
+    const { data: orgData } = await supabase
+      .from('organizations')
+      .select('stripe_subscription_id, trial_ends_at')
+      .eq('id', org_id)
+      .single()
+
+    const hadPriorSubscription = !!orgData?.stripe_subscription_id || !!orgData?.trial_ends_at
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -60,6 +69,7 @@ Deno.serve(async (req: Request) => {
       cancel_url,
       subscription_data: {
         metadata: { org_id },
+        ...(!hadPriorSubscription ? { trial_period_days: 14 } : {}),
       },
     })
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useCurrentOrganization, useHasPermission } from '@/contexts/OrganizationContext'
+import { getAllowedFrequencies } from '@/lib/featureGating'
 import { useAdConnections, useSyncSchedules, useUpsertSyncSchedule } from '@/hooks/useApiData'
 import { supabase } from '@/lib/supabase'
 import { formatDistanceToNow } from 'date-fns'
@@ -25,7 +26,7 @@ function getPlatformDisplayName(platform: string): string {
 }
 
 export function Settings() {
-  const { organizationId, organizationName, userRole, subscriptionTier } = useCurrentOrganization()
+  const { organizationId, organizationName, userRole, subscriptionTier, isTrialing, trialDaysLeft } = useCurrentOrganization()
   const isAdmin = useHasPermission('admin')
   const [searchParams] = useSearchParams()
   const billingStatus = searchParams.get('billing')
@@ -108,6 +109,8 @@ export function Settings() {
     schedules?.find(s => s.platform === platform)
 
   const connectedPlatforms = [...new Set(connections?.map(c => c.platform) || [])]
+  const allowedFrequencies = getAllowedFrequencies(tier)
+  const frequencyLabels: Record<string, string> = { hourly: 'Hourly', every_6h: 'Every 6h', daily: 'Daily' }
 
   return (
     <div className="space-y-6">
@@ -155,10 +158,19 @@ export function Settings() {
           </div>
         )}
 
+        {isTrialing && (
+          <div className="mb-3 p-2 border border-blue-200 dark:border-blue-800 rounded-md">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              You have <strong>{trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''}</strong> remaining in your free trial.
+              {trialDaysLeft <= 3 && ' Upgrade now to avoid losing access to premium features.'}
+            </p>
+          </div>
+        )}
+
         {isPaidTier ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              You are on the <strong>{TIER_LABELS[tier]}</strong> plan.
+              You are on the <strong>{TIER_LABELS[tier]}</strong> plan.{isTrialing ? ' (trial)' : ''}
             </p>
             {isAdmin && (
               <button
@@ -231,7 +243,7 @@ export function Settings() {
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <select
-                      value={currentFrequency}
+                      value={allowedFrequencies.includes(currentFrequency) ? currentFrequency : allowedFrequencies[allowedFrequencies.length - 1]}
                       onChange={e =>
                         handleScheduleChange(
                           platform,
@@ -241,9 +253,9 @@ export function Settings() {
                       }
                       className="text-sm border rounded-md px-2 py-1 bg-background"
                     >
-                      <option value="hourly">Hourly</option>
-                      <option value="every_6h">Every 6h</option>
-                      <option value="daily">Daily</option>
+                      {allowedFrequencies.map(f => (
+                        <option key={f} value={f}>{frequencyLabels[f]}</option>
+                      ))}
                     </select>
                     <label className="flex items-center gap-1.5 text-sm cursor-pointer">
                       <input

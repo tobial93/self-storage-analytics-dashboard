@@ -18,6 +18,8 @@ import { CreateOrganization } from '@/pages/auth/CreateOrganization'
 import { OAuthCallback } from '@/pages/auth/OAuthCallback'
 import { Onboarding } from '@/pages/Onboarding'
 import { LandingGate } from '@/pages/LandingGate'
+import { PrivacyPolicy } from '@/pages/PrivacyPolicy'
+import { TermsOfService } from '@/pages/TermsOfService'
 
 // Get Clerk publishable key from environment
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -47,6 +49,8 @@ function App() {
                 {/* Public routes */}
                 <Route path="/sign-in/*" element={<SignIn />} />
                 <Route path="/sign-up/*" element={<SignUp />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
 
                 {/* All other routes go through LandingGate */}
                 <Route
