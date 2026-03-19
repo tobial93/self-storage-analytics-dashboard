@@ -37,6 +37,7 @@ export function Settings() {
 
   const [billingLoading, setBillingLoading] = useState(false)
   const [billingError, setBillingError] = useState<string | null>(null)
+  const [annualBilling, setAnnualBilling] = useState(false)
 
   const tier = subscriptionTier || 'free'
   const isPaidTier = tier !== 'free'
@@ -46,11 +47,12 @@ export function Settings() {
     setBillingLoading(true)
     setBillingError(null)
 
+    const suffix = annualBilling ? '_ANNUAL' : ''
     const priceId = priceEnvKey === 'starter'
-      ? import.meta.env.VITE_STRIPE_PRICE_STARTER
+      ? import.meta.env[`VITE_STRIPE_PRICE_STARTER${suffix}`] || import.meta.env.VITE_STRIPE_PRICE_STARTER
       : priceEnvKey === 'professional'
-        ? import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL
-        : import.meta.env.VITE_STRIPE_PRICE_AGENCY
+        ? import.meta.env[`VITE_STRIPE_PRICE_PROFESSIONAL${suffix}`] || import.meta.env.VITE_STRIPE_PRICE_PROFESSIONAL
+        : import.meta.env[`VITE_STRIPE_PRICE_AGENCY${suffix}`] || import.meta.env.VITE_STRIPE_PRICE_AGENCY
 
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
@@ -188,26 +190,46 @@ export function Settings() {
               Free plan — 1 connection, 30-day data retention.
             </p>
             {isAdmin && (
-              <div className="grid gap-3 sm:grid-cols-3">
-                {[
-                  { key: 'starter', name: 'Starter', price: '$49', desc: '3 connections, 90-day data' },
-                  { key: 'professional', name: 'Professional', price: '$99', desc: 'Unlimited connections, 1-year data' },
-                  { key: 'agency', name: 'Agency', price: '$249', desc: 'Everything + white-label' },
-                ].map(plan => (
-                  <div key={plan.key} className="border rounded-md p-3">
-                    <p className="text-sm font-medium">{plan.name}</p>
-                    <p className="text-lg font-semibold mt-1">{plan.price}<span className="text-xs font-normal text-muted-foreground">/mo</span></p>
-                    <p className="text-xs text-muted-foreground mt-1">{plan.desc}</p>
-                    <button
-                      onClick={() => handleUpgrade(plan.key)}
-                      disabled={billingLoading}
-                      className="mt-2 w-full px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {billingLoading ? 'Loading...' : 'Upgrade'}
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="flex items-center gap-2 text-sm mb-3">
+                  <span className={annualBilling ? 'text-muted-foreground' : 'font-medium'}>Monthly</span>
+                  <button
+                    onClick={() => setAnnualBilling(!annualBilling)}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${annualBilling ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${annualBilling ? 'translate-x-5' : ''}`} />
+                  </button>
+                  <span className={annualBilling ? 'font-medium' : 'text-muted-foreground'}>
+                    Annual <span className="text-primary text-xs">save 20%</span>
+                  </span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {[
+                    { key: 'starter', name: 'Starter', monthly: '$49', annual: '$39', desc: '3 connections, 90-day data' },
+                    { key: 'professional', name: 'Professional', monthly: '$99', annual: '$79', desc: 'Unlimited connections, 1-year data' },
+                    { key: 'agency', name: 'Agency', monthly: '$249', annual: '$199', desc: 'Everything + white-label' },
+                  ].map(plan => (
+                    <div key={plan.key} className="border rounded-md p-3">
+                      <p className="text-sm font-medium">{plan.name}</p>
+                      <p className="text-lg font-semibold mt-1">
+                        {annualBilling ? plan.annual : plan.monthly}
+                        <span className="text-xs font-normal text-muted-foreground">/mo</span>
+                      </p>
+                      {annualBilling && (
+                        <p className="text-xs text-primary">billed annually</p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">{plan.desc}</p>
+                      <button
+                        onClick={() => handleUpgrade(plan.key)}
+                        disabled={billingLoading}
+                        className="mt-2 w-full px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {billingLoading ? 'Loading...' : 'Upgrade'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
             {!isAdmin && (
               <p className="text-sm text-muted-foreground">

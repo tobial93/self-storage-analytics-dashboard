@@ -42,21 +42,24 @@ const features = [
 const plans = [
   {
     name: 'Free',
-    price: '$0',
+    monthly: '$0',
+    annual: '$0',
     cta: 'Get Started',
     href: '/sign-up',
     bullets: ['1 ad platform connection', '30-day data retention', 'Manual sync only', 'Community support'],
   },
   {
     name: 'Starter',
-    price: '$49',
+    monthly: '$49',
+    annual: '$39',
     cta: 'Start Free Trial',
     href: '/sign-up',
     bullets: ['3 ad platform connections', '90-day data retention', 'Daily automated syncs', 'Email support'],
   },
   {
     name: 'Professional',
-    price: '$99',
+    monthly: '$99',
+    annual: '$79',
     cta: 'Start Free Trial',
     href: '/sign-up',
     featured: true,
@@ -64,7 +67,8 @@ const plans = [
   },
   {
     name: 'Agency',
-    price: '$249',
+    monthly: '$249',
+    annual: '$199',
     cta: 'Contact Sales',
     href: '/sign-up',
     bullets: ['Everything in Professional', 'White-label branding', 'Multi-org management', 'Priority support'],
@@ -123,6 +127,7 @@ const PIE_COLORS = ['#00d4aa', '#ff6b9d', '#f5a623', '#00a3cc', '#a78bfa']
 
 export function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [annual, setAnnual] = useState(false)
   const { theme, toggleTheme } = useTheme()
 
   return (
@@ -310,7 +315,21 @@ export function Landing() {
       {/* 6. Pricing — expanded bullet lists */}
       <section className="border-b border-border">
         <div className="max-w-5xl mx-auto px-4 py-16">
-          <p className="text-lg font-semibold mb-6">Pricing</p>
+          <div className="flex items-center justify-between mb-6">
+            <p className="text-lg font-semibold">Pricing</p>
+            <div className="flex items-center gap-2 text-sm">
+              <span className={annual ? 'text-muted-foreground' : 'font-medium'}>Monthly</span>
+              <button
+                onClick={() => setAnnual(!annual)}
+                className={`relative w-10 h-5 rounded-full transition-colors ${annual ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${annual ? 'translate-x-5' : ''}`} />
+              </button>
+              <span className={annual ? 'font-medium' : 'text-muted-foreground'}>
+                Annual <span className="text-primary text-xs">save 20%</span>
+              </span>
+            </div>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {plans.map((plan) => (
               <div
@@ -319,9 +338,14 @@ export function Landing() {
               >
                 <p className="text-sm font-medium">{plan.name}</p>
                 <p className="text-2xl font-semibold mt-2">
-                  {plan.price}
+                  {annual ? plan.annual : plan.monthly}
                   <span className="text-xs font-normal text-muted-foreground">/mo</span>
                 </p>
+                {annual && plan.name !== 'Free' && (
+                  <p className="text-xs text-primary mt-0.5">
+                    billed annually ({annual ? `${parseInt(plan.annual.replace('$', '')) * 12}` : ''}/yr)
+                  </p>
+                )}
                 <ul className="mt-4 space-y-2 flex-1">
                   {plan.bullets.map((b) => (
                     <li key={b} className="flex items-start gap-2 text-xs text-muted-foreground">

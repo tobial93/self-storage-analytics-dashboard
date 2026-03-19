@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimit.ts'
 
 const GOOGLE_ADS_API_VERSION = 'v20'
 
@@ -106,6 +107,10 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Rate limit: 20 syncs per org per hour
+    const rl = await checkRateLimit(org_id, 'sync-google-ads', 20, 3600)
+    if (!rl.allowed) return rateLimitResponse(rl.retryAfterSeconds!)
 
     // Create Supabase admin client (bypasses RLS)
     const supabase = createClient(

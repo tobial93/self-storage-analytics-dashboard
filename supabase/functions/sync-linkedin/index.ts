@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkRateLimit, rateLimitResponse } from '../_shared/rateLimit.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -110,6 +111,10 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Rate limit: 20 syncs per org per hour
+    const rl = await checkRateLimit(org_id, 'sync-linkedin', 20, 3600)
+    if (!rl.allowed) return rateLimitResponse(rl.retryAfterSeconds!)
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') || '',
