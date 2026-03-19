@@ -2,7 +2,7 @@
 
 ## Overview
 
-AdInsights uses a managed infrastructure stack (Supabase + Railway) that provides built-in redundancy. This document outlines the backup strategy, recovery procedures, and responsible parties.
+MetricFlow uses a managed infrastructure stack (Supabase + Railway) that provides built-in redundancy. This document outlines the backup strategy, recovery procedures, and responsible parties.
 
 ## Infrastructure Components
 

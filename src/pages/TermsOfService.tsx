@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { BarChart3, ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
+import { LogoIcon } from '@/components/LogoIcon'
 
 export function TermsOfService() {
   return (
@@ -7,8 +8,8 @@ export function TermsOfService() {
       <nav className="border-b border-border">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
-            <span className="font-semibold text-sm">AdInsights</span>
+            <LogoIcon className="h-5 w-5 text-primary" />
+            <span className="font-semibold text-sm">MetricFlow</span>
           </Link>
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
             <ArrowLeft className="h-3.5 w-3.5" /> Back
@@ -23,12 +24,12 @@ export function TermsOfService() {
         <div className="space-y-6 text-sm leading-relaxed text-muted-foreground">
           <section>
             <h2 className="text-base font-medium text-foreground mb-2">1. Acceptance of Terms</h2>
-            <p>By accessing or using AdInsights ("the Service"), you agree to be bound by these Terms of Service. If you are using the Service on behalf of an organization, you represent that you have authority to bind that organization to these terms.</p>
+            <p>By accessing or using MetricFlow ("the Service"), you agree to be bound by these Terms of Service. If you are using the Service on behalf of an organization, you represent that you have authority to bind that organization to these terms.</p>
           </section>
 
           <section>
             <h2 className="text-base font-medium text-foreground mb-2">2. Description of Service</h2>
-            <p>AdInsights is a multi-tenant SaaS platform that aggregates advertising data from connected ad platforms (Google Ads, Facebook Ads, GA4, LinkedIn Ads) and provides analytics, forecasting, and AI-powered insights for self-storage businesses.</p>
+            <p>MetricFlow is a multi-tenant SaaS platform that aggregates advertising data from connected ad platforms (Google Ads, Facebook Ads, GA4, LinkedIn Ads) and provides analytics, forecasting, and AI-powered insights.</p>
           </section>
 
           <section>
@@ -49,7 +50,7 @@ export function TermsOfService() {
 
           <section>
             <h2 className="text-base font-medium text-foreground mb-2">6. Ad Platform Data</h2>
-            <p>You authorize AdInsights to access your ad platform accounts via OAuth to sync campaign and performance data. You are responsible for ensuring you have the right to share this data. AdInsights does not modify your ad campaigns or settings — access is read-only.</p>
+            <p>You authorize MetricFlow to access your ad platform accounts via OAuth to sync campaign and performance data. You are responsible for ensuring you have the right to share this data. MetricFlow does not modify your ad campaigns or settings — access is read-only.</p>
           </section>
 
           <section>
@@ -66,7 +67,7 @@ export function TermsOfService() {
 
           <section>
             <h2 className="text-base font-medium text-foreground mb-2">8. Limitation of Liability</h2>
-            <p>AdInsights is provided "as is" without warranty of any kind. We are not liable for decisions made based on data, forecasts, or AI insights provided by the Service. Our total liability is limited to the amount you have paid for the Service in the 12 months preceding the claim.</p>
+            <p>MetricFlow is provided "as is" without warranty of any kind. We are not liable for decisions made based on data, forecasts, or AI insights provided by the Service. Our total liability is limited to the amount you have paid for the Service in the 12 months preceding the claim.</p>
           </section>
 
           <section>
@@ -81,7 +82,7 @@ export function TermsOfService() {
 
           <section>
             <h2 className="text-base font-medium text-foreground mb-2">11. Contact</h2>
-            <p>For questions about these terms, contact us at <a href="mailto:support@adinsights.io" className="text-primary hover:underline">support@adinsights.io</a>.</p>
+            <p>For questions about these terms, contact us at <a href="mailto:support@metricflow.io" className="text-primary hover:underline">support@metricflow.io</a>.</p>
           </section>
         </div>
       </main>

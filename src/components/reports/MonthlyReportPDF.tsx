@@ -198,7 +198,7 @@ export function MonthlyReportPDF({
 
         {/* Footer */}
         <Text style={styles.footer}>
-          Generated on {new Date().toLocaleDateString('en-US')} | AdInsights Dashboard
+          Generated on {new Date().toLocaleDateString('en-US')} | MetricFlow Dashboard
         </Text>
       </Page>
     </Document>

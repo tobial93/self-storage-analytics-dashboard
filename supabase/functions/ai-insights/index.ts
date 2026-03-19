@@ -123,7 +123,7 @@ ${summaryRows.map(r =>
         messages: [
           {
             role: 'user',
-            content: `You are an advertising analytics assistant for a self-storage business. Analyze this campaign performance data and provide 3-4 concise, actionable insights. Focus on what's working, what's underperforming, and specific recommendations. Be direct — no filler, no hedging. Use numbers.\n\n${dataContext}`,
+            content: `You are an advertising analytics assistant. Analyze this campaign performance data and provide 3-4 concise, actionable insights. Focus on what's working, what's underperforming, and specific recommendations. Be direct — no filler, no hedging. Use numbers.\n\n${dataContext}`,
           },
         ],
       }),

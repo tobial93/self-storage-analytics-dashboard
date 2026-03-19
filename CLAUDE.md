@@ -29,7 +29,7 @@ The project has no `supabase/config.toml` (not linked via CLI). Use `npx supabas
 
 ## Architecture Overview
 
-This is a **multi-tenant SaaS marketing analytics dashboard** for self-storage businesses. It aggregates ad platform data (Google Ads, Facebook Ads, GA4, LinkedIn) per organization, with Stripe subscription billing and a guided onboarding flow.
+This is a **multi-tenant SaaS ad spend analytics dashboard** (branded as **MetricFlow**). It aggregates ad platform data (Google Ads, Facebook Ads, GA4, LinkedIn) per organization, with Stripe subscription billing and a guided onboarding flow.
 
 ### Auth & Multi-Tenancy
 

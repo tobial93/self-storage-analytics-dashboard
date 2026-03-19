@@ -5,12 +5,12 @@ import {
   Target,
   Users,
   TrendingUp,
-  BarChart3,
   X,
   Cable,
   Settings,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { LogoIcon } from '@/components/LogoIcon'
 
 interface SidebarProps {
   isOpen: boolean
@@ -51,8 +51,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Logo */}
           <div className="flex h-14 items-center justify-between border-b border-border px-4">
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              <span className="font-semibold text-sm">AdInsights</span>
+              <LogoIcon className="h-5 w-5 text-primary" />
+              <span className="font-semibold text-sm">MetricFlow</span>
             </div>
             <Button
               variant="ghost"

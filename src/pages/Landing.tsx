@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  BarChart3,
   ArrowRight,
   Zap,
   LineChart,
@@ -15,6 +14,7 @@ import {
   Moon,
 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
+import { LogoIcon } from '@/components/LogoIcon'
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -114,11 +114,11 @@ const mockTrendData = [
 ]
 
 const mockCampaignSpend = [
-  { name: '10x10 Units', value: 3200 },
-  { name: '5x5 Climate', value: 2800 },
-  { name: 'Vehicle Storage', value: 2100 },
-  { name: 'First Month Free', value: 1900 },
-  { name: 'Business Storage', value: 1400 },
+  { name: 'Brand Awareness', value: 3200 },
+  { name: 'Lead Gen Q1', value: 2800 },
+  { name: 'Retargeting', value: 2100 },
+  { name: 'Product Launch', value: 1900 },
+  { name: 'Holiday Sale', value: 1400 },
 ]
 
 const PIE_COLORS = ['#00d4aa', '#ff6b9d', '#f5a623', '#00a3cc', '#a78bfa']
@@ -136,8 +136,8 @@ export function Landing() {
       <nav className="border-b border-border">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
-            <span className="font-semibold text-sm">AdInsights</span>
+            <LogoIcon className="h-5 w-5 text-primary" />
+            <span className="font-semibold text-sm">MetricFlow</span>
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -163,10 +163,10 @@ export function Landing() {
       <section className="max-w-5xl mx-auto px-4 py-20">
         <div className="max-w-2xl">
           <h1 className="text-3xl font-semibold tracking-tight">
-            Marketing analytics for self-storage businesses
+            All your ad spend in one dashboard
           </h1>
           <p className="text-base text-muted-foreground mt-3 max-w-lg">
-            Aggregate ad platform data, track conversions, and forecast revenue — all in one place. Built for operators managing Google Ads, Facebook, GA4, and LinkedIn campaigns.
+            Aggregate ad platform data, track conversions, and forecast revenue — all in one place. Built for teams managing Google Ads, Facebook, GA4, and LinkedIn campaigns.
           </p>
           <div className="flex items-center gap-3 mt-6">
             <Link
@@ -193,7 +193,7 @@ export function Landing() {
               <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
               <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30" />
               <div className="ml-3 text-[10px] text-muted-foreground/50 bg-muted/80 rounded px-2 py-0.5 flex-1 max-w-xs">
-                app.adinsights.io/dashboard
+                app.metricflow.io/dashboard
               </div>
             </div>
             {/* Mock dashboard content */}
@@ -426,7 +426,7 @@ export function Landing() {
             <div>
               <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-3">Company</p>
               <ul className="space-y-2">
-                <li><a href="mailto:support@adinsights.io" className="text-muted-foreground hover:text-foreground transition-colors">Contact</a></li>
+                <li><a href="mailto:support@metricflow.io" className="text-muted-foreground hover:text-foreground transition-colors">Contact</a></li>
               </ul>
             </div>
             <div>
@@ -440,7 +440,7 @@ export function Landing() {
         </div>
         <div className="border-t border-border">
           <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between text-xs text-muted-foreground">
-            <p>&copy; 2026 AdInsights</p>
+            <p>&copy; 2026 MetricFlow</p>
             <div className="flex gap-4">
               <Link to="/sign-in" className="hover:text-foreground transition-colors">Sign in</Link>
               <Link to="/sign-up" className="hover:text-foreground transition-colors">Sign up</Link>
