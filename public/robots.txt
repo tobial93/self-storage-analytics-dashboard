@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /settings
+Disallow: /onboarding
+Disallow: /create-organization
+Disallow: /integrations/callback
+
+Sitemap: https://self-storage-analytics-dashboard-production.up.railway.app/sitemap.xml
