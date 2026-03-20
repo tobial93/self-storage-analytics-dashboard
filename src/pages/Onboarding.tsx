@@ -8,7 +8,7 @@ import { connectFacebookAdsMock, syncFacebookAdsMock } from '@/services/facebook
 import { initiateGA4OAuth } from '@/services/ga4'
 import { initiateLinkedInOAuth } from '@/services/linkedin'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@clerk/clerk-react'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import { useQueryClient } from '@tanstack/react-query'
 
 type Step = 1 | 2 | 3 | 4
@@ -23,10 +23,11 @@ const STEPS = [
 export function Onboarding() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { organizationId } = useCurrentOrganization()
+  const { organizationId, organizationName } = useCurrentOrganization()
   const { data: connections } = useAdConnections()
   const markComplete = useMarkOnboardingComplete()
   const { getToken } = useAuth()
+  const { user } = useUser()
   const queryClient = useQueryClient()
 
   const [currentStep, setCurrentStep] = useState<Step>(1)
@@ -156,6 +157,16 @@ export function Onboarding() {
     setCompleting(true)
     try {
       await markComplete.mutateAsync()
+
+      // Send welcome email (fire-and-forget — don't block navigation)
+      supabase.functions.invoke('send-onboarding-email', {
+        body: {
+          user_email: user?.primaryEmailAddress?.emailAddress,
+          user_name: user?.firstName || user?.fullName,
+          org_name: organizationName,
+        },
+      }).catch(err => console.error('Onboarding email failed:', err))
+
       navigate('/', { replace: true })
     } catch (err) {
       console.error('Error completing onboarding:', err)
