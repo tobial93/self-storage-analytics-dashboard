@@ -140,3 +140,15 @@ export interface SyncSchedule {
   created_at: string
   updated_at: string
 }
+
+export interface AlertThresholds {
+  id: string
+  org_id: string
+  cpa_max: number | null
+  ctr_min: number | null
+  spend_spike_pct: number | null
+  roas_min: number | null
+  is_enabled: boolean
+  created_at: string
+  updated_at: string
+}

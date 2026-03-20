@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useCurrentOrganization, useHasPermission } from '@/contexts/OrganizationContext'
-import { getAllowedFrequencies } from '@/lib/featureGating'
-import { useAdConnections, useSyncSchedules, useUpsertSyncSchedule } from '@/hooks/useApiData'
+import { getAllowedFrequencies, canAccess } from '@/lib/featureGating'
+import { useAdConnections, useSyncSchedules, useUpsertSyncSchedule, useAlertThresholds, useUpsertAlertThresholds } from '@/hooks/useApiData'
 import { supabase } from '@/lib/supabase'
 import { formatDistanceToNow } from 'date-fns'
 import type { SyncFrequency } from '@/data/types'
@@ -35,9 +35,54 @@ export function Settings() {
   const { data: schedules } = useSyncSchedules()
   const upsertSchedule = useUpsertSyncSchedule()
 
+  const { data: alertThresholds } = useAlertThresholds()
+  const upsertThresholds = useUpsertAlertThresholds()
+
   const [billingLoading, setBillingLoading] = useState(false)
   const [billingError, setBillingError] = useState<string | null>(null)
   const [annualBilling, setAnnualBilling] = useState(false)
+  const [thresholdSaving, setThresholdSaving] = useState(false)
+  const [thresholdError, setThresholdError] = useState<string | null>(null)
+  const [thresholdSuccess, setThresholdSuccess] = useState(false)
+  const [thresholdValues, setThresholdValues] = useState({
+    cpa_max: '',
+    ctr_min: '',
+    spend_spike_pct: '',
+    roas_min: '',
+  })
+
+  useEffect(() => {
+    if (alertThresholds) {
+      setThresholdValues({
+        cpa_max: alertThresholds.cpa_max?.toString() ?? '',
+        ctr_min: alertThresholds.ctr_min?.toString() ?? '',
+        spend_spike_pct: alertThresholds.spend_spike_pct?.toString() ?? '',
+        roas_min: alertThresholds.roas_min?.toString() ?? '',
+      })
+    }
+  }, [alertThresholds])
+
+  const handleThresholdSave = async (values: {
+    cpa_max?: number | null
+    ctr_min?: number | null
+    spend_spike_pct?: number | null
+    roas_min?: number | null
+    is_enabled?: boolean
+  }) => {
+    setThresholdSaving(true)
+    setThresholdError(null)
+    setThresholdSuccess(false)
+
+    try {
+      await upsertThresholds.mutateAsync(values)
+      setThresholdSuccess(true)
+      setTimeout(() => setThresholdSuccess(false), 3000)
+    } catch (err) {
+      setThresholdError(err instanceof Error ? err.message : 'Failed to save thresholds')
+    } finally {
+      setThresholdSaving(false)
+    }
+  }
 
   const tier = subscriptionTier || 'free'
   const isPaidTier = tier !== 'free'
@@ -301,6 +346,92 @@ export function Settings() {
           </div>
         </div>
       )}
+
+      {/* Alert Thresholds */}
+      <div className="border rounded-lg p-4 bg-card">
+        <p className="text-sm font-medium mb-3">Alert Thresholds</p>
+
+        {!canAccess(tier, 'alerts') ? (
+          <p className="text-sm text-muted-foreground">
+            Upgrade to Starter to enable performance alerts.
+          </p>
+        ) : (
+          <>
+            {!canAccess(tier, 'alert_thresholds') && (
+              <div className="mb-3 p-2 border border-blue-200 dark:border-blue-800 rounded-md">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  Upgrade to Professional to customize alert thresholds. Default values are shown below.
+                </p>
+              </div>
+            )}
+
+            {thresholdError && (
+              <div className="mb-3 p-2 border border-red-200 dark:border-red-800 rounded-md">
+                <p className="text-sm text-red-700 dark:text-red-300">{thresholdError}</p>
+              </div>
+            )}
+            {thresholdSuccess && (
+              <div className="mb-3 p-2 border border-green-200 dark:border-green-800 rounded-md">
+                <p className="text-sm text-green-700 dark:text-green-300">Alert thresholds saved.</p>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={alertThresholds?.is_enabled ?? true}
+                  disabled={!canAccess(tier, 'alert_thresholds') || !isAdmin}
+                  onChange={e => handleThresholdSave({ is_enabled: e.target.checked })}
+                  className="h-4 w-4 rounded"
+                />
+                Alerts enabled
+              </label>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  { key: 'cpa_max', label: 'CPA Max ($)', placeholder: '50.00', step: '0.01' },
+                  { key: 'ctr_min', label: 'CTR Min (%)', placeholder: '1.0', step: '0.1' },
+                  { key: 'spend_spike_pct', label: 'Spend Spike (%)', placeholder: '50.0', step: '1' },
+                  { key: 'roas_min', label: 'ROAS Min', placeholder: '2.0', step: '0.1' },
+                ].map(field => (
+                  <div key={field.key}>
+                    <label className="text-xs text-muted-foreground">{field.label}</label>
+                    <input
+                      type="number"
+                      step={field.step}
+                      placeholder={field.placeholder}
+                      value={thresholdValues[field.key as keyof typeof thresholdValues]}
+                      disabled={!canAccess(tier, 'alert_thresholds') || !isAdmin}
+                      onChange={e => setThresholdValues(prev => ({
+                        ...prev,
+                        [field.key]: e.target.value,
+                      }))}
+                      className="mt-1 w-full px-2 py-1.5 text-sm border rounded-md bg-background disabled:opacity-50"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {canAccess(tier, 'alert_thresholds') && isAdmin && (
+                <button
+                  onClick={() => handleThresholdSave({
+                    cpa_max: thresholdValues.cpa_max === '' ? null : Number(thresholdValues.cpa_max),
+                    ctr_min: thresholdValues.ctr_min === '' ? null : Number(thresholdValues.ctr_min),
+                    spend_spike_pct: thresholdValues.spend_spike_pct === '' ? null : Number(thresholdValues.spend_spike_pct),
+                    roas_min: thresholdValues.roas_min === '' ? null : Number(thresholdValues.roas_min),
+                    is_enabled: alertThresholds?.is_enabled ?? true,
+                  })}
+                  disabled={thresholdSaving}
+                  className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {thresholdSaving ? 'Saving...' : 'Save Thresholds'}
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Team Management */}
       <div className="border rounded-lg p-4 bg-card">

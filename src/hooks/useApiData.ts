@@ -233,3 +233,35 @@ export function useUpsertSyncSchedule() {
     },
   })
 }
+
+// ============================================================
+// ALERT THRESHOLDS
+// ============================================================
+
+export function useAlertThresholds() {
+  const { organizationId } = useCurrentOrganization()
+
+  return useQuery({
+    queryKey: ['alert-thresholds', organizationId],
+    queryFn: () => api.getAlertThresholds(organizationId!),
+    enabled: !!organizationId,
+  })
+}
+
+export function useUpsertAlertThresholds() {
+  const queryClient = useQueryClient()
+  const { organizationId } = useCurrentOrganization()
+
+  return useMutation({
+    mutationFn: (thresholds: {
+      cpa_max?: number | null
+      ctr_min?: number | null
+      spend_spike_pct?: number | null
+      roas_min?: number | null
+      is_enabled?: boolean
+    }) => api.upsertAlertThresholds(organizationId!, thresholds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alert-thresholds', organizationId] })
+    },
+  })
+}

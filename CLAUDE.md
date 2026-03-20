@@ -181,6 +181,15 @@ VITE_STRIPE_PRICE_AGENCY=
 VITE_STRIPE_PRICE_STARTER_ANNUAL=
 VITE_STRIPE_PRICE_PROFESSIONAL_ANNUAL=
 VITE_STRIPE_PRICE_AGENCY_ANNUAL=
+VITE_SENTRY_DSN=
+```
+
+Required build-time env vars for Sentry source map uploads (set in Railway or CI):
+
+```bash
+SENTRY_AUTH_TOKEN=
+SENTRY_ORG=
+SENTRY_PROJECT=
 ```
 
 Required Supabase secrets (set via `supabase secrets set`):

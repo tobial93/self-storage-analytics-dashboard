@@ -13,6 +13,7 @@ export type Feature =
   | 'pdf_export'
   | 'csv_export'
   | 'branding'
+  | 'alert_thresholds'
 
 const TIER_RANK: Record<SubscriptionTier, number> = {
   free: 0,
@@ -28,6 +29,7 @@ const FEATURE_MIN_TIER: Record<Feature, SubscriptionTier> = {
   pdf_export: 'professional',
   csv_export: 'starter',
   branding: 'agency',
+  alert_thresholds: 'professional',
 }
 
 export function canAccess(tier: SubscriptionTier, feature: Feature): boolean {

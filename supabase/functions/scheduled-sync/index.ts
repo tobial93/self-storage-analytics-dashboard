@@ -65,6 +65,15 @@ async function runDueSchedules() {
         console.error(`Error syncing ${schedule.platform} for org ${schedule.org_id}:`, invokeError)
       } else {
         console.log(`Successfully synced ${schedule.platform} for org ${schedule.org_id}`)
+
+        // After successful sync, evaluate alert thresholds
+        try {
+          await supabase.functions.invoke('evaluate-alerts', {
+            body: { org_id: schedule.org_id },
+          })
+        } catch (alertErr) {
+          console.error(`Alert evaluation failed for org ${schedule.org_id}:`, alertErr)
+        }
       }
     } catch (err) {
       console.error(`Exception syncing ${schedule.platform} for org ${schedule.org_id}:`, err)

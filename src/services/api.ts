@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type {
+  AlertThresholds,
   Campaign,
   DailyMetrics,
   PerformanceAlert,
@@ -433,6 +434,49 @@ export async function upsertSyncSchedule(
 
   if (error) {
     console.error('Error upserting sync schedule:', error)
+    throw error
+  }
+
+  return data
+}
+
+// ============================================================
+// ALERT THRESHOLDS
+// ============================================================
+
+export async function getAlertThresholds(orgId: string): Promise<AlertThresholds | null> {
+  const { data, error } = await supabase
+    .from('alert_thresholds')
+    .select('*')
+    .eq('org_id', orgId)
+    .single()
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Error fetching alert thresholds:', error)
+    throw error
+  }
+
+  return data
+}
+
+export async function upsertAlertThresholds(
+  orgId: string,
+  thresholds: {
+    cpa_max?: number | null
+    ctr_min?: number | null
+    spend_spike_pct?: number | null
+    roas_min?: number | null
+    is_enabled?: boolean
+  }
+): Promise<AlertThresholds> {
+  const { data, error } = await supabase
+    .from('alert_thresholds')
+    .upsert({ org_id: orgId, ...thresholds }, { onConflict: 'org_id' })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error upserting alert thresholds:', error)
     throw error
   }
 
