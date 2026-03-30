@@ -18,11 +18,10 @@ import { useCampaigns, useMetricsByDateRange } from '@/hooks/useApiData'
 import { TrendingUp, TrendingDown, Target, Search, Download } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useCurrentOrganization } from '@/contexts/OrganizationContext'
+import { CHART_COLORS } from '@/lib/chartColors'
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v)
-
-const COLORS = ['#00d4aa', '#ff6b9d', '#f5a623', '#00a3cc', '#a78bfa']
 
 function UnitPerformanceSkeleton() {
   return (
@@ -65,7 +64,7 @@ export function UnitPerformance() {
       const ctr = s.impressions > 0 ? (s.clicks / s.impressions) * 100 : 0
       const cpa = s.conversions > 0 ? s.spend / s.conversions : 0
       const performance = roas >= 5 ? 'excellent' : roas >= 3 ? 'good' : 'needs attention'
-      return { ...c, ...s, roas, ctr, cpa, performance, color: COLORS[i % COLORS.length] }
+      return { ...c, ...s, roas, ctr, cpa, performance, color: CHART_COLORS[i % CHART_COLORS.length] }
     })
   }, [campaigns, metrics])
 
@@ -194,7 +193,7 @@ export function UnitPerformance() {
           </div>
 
           <Card>
-            <CardHeader><CardTitle>Campaign ROAS Comparison</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Ads – ROAS by Campaign</CardTitle></CardHeader>
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -215,7 +214,7 @@ export function UnitPerformance() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between flex-wrap gap-3">
-                <CardTitle>Campaign Details</CardTitle>
+                <CardTitle>Ads – Campaign Details</CardTitle>
                 {canAccessFeature('csv_export') && (
                   <button onClick={handleCsvExport} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
                     <Download className="h-4 w-4" /> Export CSV
@@ -257,10 +256,10 @@ export function UnitPerformance() {
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right cursor-pointer select-none" onClick={() => handleSort('spend')}>Spend{sortIndicator('spend')}</TableHead>
                     <TableHead className="text-right cursor-pointer select-none" onClick={() => handleSort('revenue')}>Revenue{sortIndicator('revenue')}</TableHead>
-                    <TableHead className="text-right cursor-pointer select-none" onClick={() => handleSort('roas')}>ROAS{sortIndicator('roas')}</TableHead>
+                    <TableHead className="text-right cursor-pointer select-none" title="Return on Ad Spend" onClick={() => handleSort('roas')}>ROAS{sortIndicator('roas')}</TableHead>
                     <TableHead className="text-right cursor-pointer select-none" onClick={() => handleSort('conversions')}>Conversions{sortIndicator('conversions')}</TableHead>
-                    <TableHead className="text-right cursor-pointer select-none" onClick={() => handleSort('cpa')}>CPA{sortIndicator('cpa')}</TableHead>
-                    <TableHead className="text-right">CTR</TableHead>
+                    <TableHead className="text-right cursor-pointer select-none" title="Cost per Acquisition" onClick={() => handleSort('cpa')}>CPA{sortIndicator('cpa')}</TableHead>
+                    <TableHead className="text-right" title="Click-Through Rate">CTR</TableHead>
                     <TableHead>Performance</TableHead>
                   </TableRow>
                 </TableHeader>

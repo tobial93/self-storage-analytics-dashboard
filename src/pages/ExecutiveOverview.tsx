@@ -21,11 +21,10 @@ import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCurrentOrganization } from '@/contexts/OrganizationContext'
 import { UpgradePrompt } from '@/components/UpgradePrompt'
+import { CHART_COLORS, COLOR_REVENUE, COLOR_SPEND } from '@/lib/chartColors'
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
-
-const COLORS = ['#00d4aa', '#ff6b9d', '#f5a623', '#00a3cc', '#a78bfa']
 
 function ExecutiveOverviewSkeleton() {
   return (
@@ -81,7 +80,7 @@ export function ExecutiveOverview() {
       byCampaign[cid] = (byCampaign[cid] || 0) + Number(m.spend || 0)
     }
     return campaigns
-      .map(c => ({ name: c.name, value: Math.round((byCampaign[c.id] || 0) * 100) / 100 }))
+      .map((c, i) => ({ name: c.name, value: Math.round((byCampaign[c.id] || 0) * 100) / 100, color: CHART_COLORS[i % CHART_COLORS.length] }))
       .filter(c => c.value > 0)
       .sort((a, b) => b.value - a.value)
   }, [metrics, campaigns])
@@ -132,7 +131,7 @@ export function ExecutiveOverview() {
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
-              <CardHeader><CardTitle>Revenue vs Ad Spend</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Ads – Revenue vs Spend</CardTitle></CardHeader>
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
@@ -142,8 +141,8 @@ export function ExecutiveOverview() {
                       <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                       <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px' }} formatter={(value) => formatCurrency(Number(value))} />
                       <Legend />
-                      <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#00d4aa" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="spend" name="Ad Spend" stroke="#ff6b9d" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="revenue" name="Revenue" stroke={COLOR_REVENUE} strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="spend" name="Ad Spend" stroke={COLOR_SPEND} strokeWidth={2} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -151,14 +150,14 @@ export function ExecutiveOverview() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>Spend by Campaign</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Ads – Spend by Campaign</CardTitle></CardHeader>
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie data={campaignSpend} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }: { name?: string; percent?: number }) => { const n = name ?? ''; return `${n.split(' - ')[1] || n} ${((percent ?? 0) * 100).toFixed(0)}%` }} labelLine={false}>
-                        {campaignSpend.map((_, index) => (
-                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                        {campaignSpend.map((entry, index) => (
+                          <Cell key={index} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip formatter={(value) => formatCurrency(Number(value))} />
@@ -170,7 +169,7 @@ export function ExecutiveOverview() {
           </div>
 
           <Card>
-            <CardHeader><CardTitle>Campaign Performance</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Ads – Campaign Performance</CardTitle></CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">

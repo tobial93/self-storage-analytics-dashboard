@@ -6,16 +6,34 @@ export interface DateRange {
   label: string
 }
 
-const PRESETS: { label: string; days: number }[] = [
-  { label: '7d', days: 7 },
-  { label: '30d', days: 30 },
-  { label: '90d', days: 90 },
+type RollingPreset = { label: string; type: 'rolling'; days: number }
+type CalendarPreset = { label: string; type: 'calendar'; unit: 'week' | 'month' }
+type Preset = RollingPreset | CalendarPreset
+
+const PRESETS: Preset[] = [
+  { label: 'Last 30 Days', type: 'rolling', days: 30 },
+  { label: 'This Month', type: 'calendar', unit: 'month' },
+  { label: 'This Week', type: 'calendar', unit: 'week' },
 ]
 
-function makeDateRange(days: number): { start: Date; end: Date } {
+function makeRollingRange(days: number): { start: Date; end: Date } {
   const end = new Date()
   const start = new Date()
   start.setDate(start.getDate() - (days - 1))
+  return { start, end }
+}
+
+function makeCalendarRange(unit: 'week' | 'month'): { start: Date; end: Date } {
+  const end = new Date()
+  const start = new Date()
+  if (unit === 'week') {
+    // Monday as week start
+    const day = start.getDay()
+    const diff = day === 0 ? -6 : 1 - day
+    start.setDate(start.getDate() + diff)
+  } else {
+    start.setDate(1)
+  }
   return { start, end }
 }
 
@@ -31,8 +49,11 @@ interface DateRangePickerProps {
 export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   const [showCustom, setShowCustom] = useState(false)
 
-  const handlePreset = (preset: { label: string; days: number }) => {
-    const { start, end } = makeDateRange(preset.days)
+  const handlePreset = (preset: Preset) => {
+    const { start, end } =
+      preset.type === 'rolling'
+        ? makeRollingRange(preset.days)
+        : makeCalendarRange(preset.unit)
     setShowCustom(false)
     onChange({ startDate: start, endDate: end, label: preset.label })
   }
@@ -99,11 +120,11 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   )
 }
 
-/** Default 30-day range hook */
+/** Default date range: Last 30 Days (rolling). */
 export function useDateRange() {
   const [range, setRange] = useState<DateRange>(() => {
-    const { start, end } = makeDateRange(30)
-    return { startDate: start, endDate: end, label: '30d' }
+    const { start, end } = makeRollingRange(30)
+    return { startDate: start, endDate: end, label: 'Last 30 Days' }
   })
 
   // Stable references so React Query keys don't thrash
